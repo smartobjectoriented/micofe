@@ -1,0 +1,9 @@
+--- /home/rossierd/soo/micofe/27/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/Kconfig	2026-03-23 18:27:14.360239460 +0100
++++ ./Kconfig	2026-03-23 18:28:30.829938837 +0100
+@@ -30,3 +30,6 @@
+ source "lib/Kconfig.debug"
+ 
+ source "Documentation/Kconfig"
++
++# SOO subsystems and drivers
++source "soo/Kconfig"

@@ -1,0 +1,43 @@
+--- /home/rossierd/soo/micofe/27/build/tmp/work/buildroot-2024.11-r0/buildroot-2024.11/configs/rpi4_64_defconfig	2026-03-13 09:29:30.423242388 +0100
++++ ./configs/rpi4_64_defconfig	2026-03-13 09:30:39.195383719 +0100
+@@ -1,6 +1,6 @@
+ #
+ # Automatically generated file; DO NOT EDIT.
+-# Buildroot -ge5ce03f6b-dirty Configuration
++# Buildroot -g531352d-dirty Configuration
+ #
+ BR2_HAVE_DOT_CONFIG=y
+ BR2_HOST_GCC_AT_LEAST_4_9=y
+@@ -1833,7 +1833,7 @@
+ BR2_PACKAGE_JSON_C=y
+ # BR2_PACKAGE_JSON_FOR_MODERN_CPP is not set
+ # BR2_PACKAGE_JSON_GLIB is not set
+-# BR2_PACKAGE_JSONCPP is not set
++BR2_PACKAGE_JSONCPP=y
+ # BR2_PACKAGE_LIBBSON is not set
+ # BR2_PACKAGE_LIBFASTJSON is not set
+ # BR2_PACKAGE_LIBJSON is not set
+@@ -1984,7 +1984,7 @@
+ # BR2_PACKAGE_LIBGSASL is not set
+ # BR2_PACKAGE_LIBHTP is not set
+ # BR2_PACKAGE_LIBHTTPPARSER is not set
+-# BR2_PACKAGE_LIBHTTPSERVER is not set
++BR2_PACKAGE_LIBHTTPSERVER=y
+ # BR2_PACKAGE_LIBIDN is not set
+ # BR2_PACKAGE_LIBIDN2 is not set
+ # BR2_PACKAGE_LIBISCSI is not set
+@@ -1993,7 +1993,8 @@
+ # BR2_PACKAGE_LIBMAXMINDDB is not set
+ # BR2_PACKAGE_LIBMBUS is not set
+ # BR2_PACKAGE_LIBMEMCACHED is not set
+-# BR2_PACKAGE_LIBMICROHTTPD is not set
++BR2_PACKAGE_LIBMICROHTTPD=y
++# BR2_PACKAGE_LIBMICROHTTPD_SSL is not set
+ # BR2_PACKAGE_LIBMINIUPNPC is not set
+ # BR2_PACKAGE_LIBMNL is not set
+ # BR2_PACKAGE_LIBMODBUS is not set
+@@ -4200,3 +4201,4 @@
+ # BR2_PACKAGE_PERF is not set
+ # BR2_BINUTILS_VERSION_2_22 is not set
+ # BR2_PACKAGE_GPU_VIV_BIN_MX6Q is not set
++# BR2_TARGET_UBOOT_NETWORK is not set

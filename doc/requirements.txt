@@ -1,0 +1,11 @@
+sphinx
+sphinx-rtd-theme
+sphinx-toolbox
+sphinx-gallery
+sphinx-autodoc-typehints
+sphinxcontrib-napoleon
+sphinxcontrib-httpdomain
+sphinxcontrib-bibtex
+sphinxcontrib-pdfembed
+
+

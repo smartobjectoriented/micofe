@@ -1,0 +1,17 @@
+--- /home/rossierd/soo/micofe/27/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/soo/drivers/Makefile	1970-01-01 01:00:00.000000000 +0100
++++ ./soo/drivers/Makefile	2026-03-13 13:24:35.605109501 +0100
+@@ -0,0 +1,14 @@
++#
++# Makefile for SOO general drivers.
++#
++
++obj-y += vdevback.o
++
++obj-$(CONFIG_VDUMMY_BACKEND) += vdummyback/ 
++obj-$(CONFIG_VUART_BACKEND) += vuartback/
++obj-$(CONFIG_VLEDS_BACKEND)		+= vledsback/
++obj-$(CONFIG_VSENSELED_BACKEND) += vsenseledback/
++obj-$(CONFIG_VSENSEJ_BACKEND) += vsensejback/
++obj-$(CONFIG_VLOGS_BACKEND) += vlogsback/
++obj-$(CONFIG_VFBDEV_BACKEND) += vfbdevback/
++obj-$(CONFIG_VINPUT_BACKEND) += vinputback/

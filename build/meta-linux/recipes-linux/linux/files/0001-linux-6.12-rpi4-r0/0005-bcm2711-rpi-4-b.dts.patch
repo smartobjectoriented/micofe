@@ -1,0 +1,90 @@
+--- /home/rossierd/soo/micofe/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/arch/arm64/boot/dts/broadcom/bcm2711-rpi-4-b.dts	2026-02-08 10:06:33.373477030 +0100
++++ ./arch/arm64/boot/dts/broadcom/bcm2711-rpi-4-b.dts	2026-02-08 09:43:34.340984648 +0100
+@@ -1,2 +1,87 @@
+ // SPDX-License-Identifier: GPL-2.0
+ #include "arm/broadcom/bcm2711-rpi-4-b.dts"
++
++/ {
++	chosen {
++		bootargs = "coherent_pool=1M 8250.nr_uarts=1 cma=64M smsc95xx.macaddr=DC:A6:32:18:DD:95 vc_mem.mem_base=0x3ec00000 vc_mem.mem_size=0x40000000  console=ttyS0,115200 root=/dev/ram fsck.repair=yes rootwait";
++
++		/delete-property/ stdout-path;
++	};
++
++	/* Normally filled by the bootloader, but AVZ doesn't */
++	memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x10000000 0x20000000>;
++	};
++};
++
++/* SOO.tech */
++&soc {
++	virtgpio: virtgpio {
++		compatible = "brcm,bcm2835-virtgpio";
++		gpio-controller;
++		#gpio-cells = <2>;
++		firmware = <&firmware>;
++		status = "okay";
++	};
++};
++
++&spi1 {
++	status = "okay";
++	cs-gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
++	num-cs = <1>;
++
++	drv8703q1@0 {
++		compatible = "ti,drv8703q1";
++		status = "okay";
++		reg = <0>;
++		spi-max-frequency = <0x7735940>;
++		sleep-gpio = <&gpio 22 GPIO_ACTIVE_HIGH>;
++		mode-gpio = <&gpio 10 GPIO_ACTIVE_HIGH>;
++	};
++};
++
++&i2c1 {
++	status = "okay";
++
++	rpi-sense@46 {
++		compatible = "rpi,rpi-sense";
++		reg = <0x46>;
++		keys-int-gpios = <&gpio 23 1>;
++		status = "okay";
++	};
++
++	lsm9ds1-magn@1c {
++		compatible = "st,lsm9ds1-magn";
++		reg = <0x1c>;
++		status = "okay";
++	};
++
++	lsm9ds1-accel@6a {
++		compatible = "st,lsm9ds1-accel";
++		reg = <0x6a>;
++		status = "okay";
++	};
++
++	lps25h-press@5c {
++		compatible = "st,lps25h-press";
++		reg = <0x5c>;
++		status = "okay";
++	};
++
++	hts221-humid@5f {
++		compatible = "st,hts221-humid";
++		reg = <0x5f>;
++		status = "okay";
++	};
++};
++
++&i2c4 {
++	status = "okay";
++	clock-frequency = <100000>;
++
++	ds1050@28 {
++		compatible = "maxim,ds1050";
++		reg = <0x28>; /* This is due to the control byte (101) + A2, A1, A0 (000) combination (101000 = 0x28) */
++	};
++};

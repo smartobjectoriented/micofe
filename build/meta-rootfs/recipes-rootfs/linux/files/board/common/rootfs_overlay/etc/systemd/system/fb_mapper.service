@@ -1,0 +1,9 @@
+[Unit]
+Description=Starting Framebuffer mapper service
+
+[Service]
+Restart=always
+ExecStart=/root/fb_mapper
+
+[Install]
+WantedBy=multi-user.target

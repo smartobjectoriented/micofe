@@ -1,0 +1,9 @@
+[Unit]
+Description=Starting input forwarding service
+
+[Service]
+Restart=always
+ExecStart=/root/input_forwarding
+
+[Install]
+WantedBy=multi-user.target

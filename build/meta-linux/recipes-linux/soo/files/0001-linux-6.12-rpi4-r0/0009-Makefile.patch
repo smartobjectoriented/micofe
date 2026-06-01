@@ -1,0 +1,24 @@
+--- /home/rossierd/soo/micofe/27/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/Makefile	2026-03-23 18:27:32.466964354 +0100
++++ ./Makefile	2026-03-23 18:28:40.268531413 +0100
+@@ -744,6 +744,10 @@
+ # Defaults to vmlinux, but the arch makefile usually adds further targets
+ all: vmlinux
+ 
++ifdef CONFIG_SOO
++LINUXINCLUDE += -Isoo/include
++endif
++
+ CFLAGS_GCOV	:= -fprofile-arcs -ftest-coverage
+ ifdef CONFIG_CC_IS_GCC
+ CFLAGS_GCOV	+= -fno-tree-loop-im
+@@ -1117,6 +1121,10 @@
+ export MODORDER := $(extmod_prefix)modules.order
+ export MODULES_NSDEPS := $(extmod_prefix)modules.nsdeps
+ 
++ifdef CONFIG_SOO
++  core-y	 += soo/
++endif
++
+ ifeq ($(KBUILD_EXTMOD),)
+ 
+ build-dir	:= .

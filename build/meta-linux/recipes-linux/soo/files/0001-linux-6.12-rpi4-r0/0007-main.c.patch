@@ -1,0 +1,27 @@
+--- /home/rossierd/soo/micofe/27/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/init/main.c	2026-03-23 18:27:18.137885491 +0100
++++ ./init/main.c	2026-03-13 13:24:37.036201866 +0100
+@@ -109,6 +109,10 @@
+ #include <asm/sections.h>
+ #include <asm/cacheflush.h>
+ 
++#ifdef CONFIG_SOO
++#include <soo/hypervisor.h>
++#endif /* CONFIG_SOO */
++
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/initcall.h>
+ 
+@@ -994,6 +998,13 @@
+ 	 */
+ 	workqueue_init_early();
+ 
++#ifdef CONFIG_SOO
++
++	/* Get the reference to the AVZ shared data */
++	avz_get_shared();
++
++#endif /* CONFIG_SOO */
++
+ 	rcu_init();
+ 
+ 	/* Trace events are available after this */

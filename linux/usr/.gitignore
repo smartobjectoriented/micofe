@@ -1,0 +1,6 @@
+
+patches
+
+src/modules/Module.symvers
+src/modules/modtry.mod*
+   

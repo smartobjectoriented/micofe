@@ -1,0 +1,247 @@
+--- ./src/soo/input_forwarding.c	1970-01-01 01:00:00.000000000 +0100
++++ ./src/soo/input_forwarding.c	2026-01-10 17:28:33.594328500 +0200
+@@ -0,0 +1,244 @@
++/*
++ * Copyright (C) 2026 Clément Dieperink <clement.dieperink@heig-vd.ch>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ *
++ */
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <stdint.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <poll.h>
++#include <errno.h>
++#include <string.h>
++#include <dirent.h>
++#include <linux/input.h>
++
++#define VINPUT_DEV "/dev/vinput"
++#define INPUT_PATH "/dev/input"
++#define MAX_INPUT_PER_READ 10
++
++#define INPUT_CAPABITLIES_ABS "/sys/class/input/%s/device/capabilities/abs"
++
++struct input_info {
++	int has_abs;
++	struct input_absinfo absinfo_x;
++	struct input_absinfo absinfo_y;
++};
++
++static struct pollfd *input_devices = NULL;
++static struct input_info *input_info = NULL;
++static size_t input_count = 0;
++
++static int vinput_fd;
++
++static void open_input(char *path)
++{
++	int fd, ret;
++	struct pollfd *tmp_input_devices;
++	struct input_info *tmp_input_info;
++	char full_path[256];
++
++	if (strncmp(path, "event", 5) != 0)
++		return;
++
++	snprintf(full_path, sizeof(full_path), INPUT_PATH "/%s", path);
++
++	fd = open(full_path, O_RDWR);
++	if (fd == -1) {
++		fprintf(stderr, "%s: Couldnt open file %s\n", strerror(errno),
++			full_path);
++		return;
++	}
++
++	/* Resizes arrays */
++	input_count++;
++	tmp_input_devices = reallocarray(input_devices, input_count,
++					 sizeof(input_devices[0]));
++	if (tmp_input_devices == NULL) {
++		input_count--;
++		close(fd);
++		perror("Couldn't allocate memory to add new device");
++		return;
++	}
++
++	tmp_input_info =
++		reallocarray(input_info, input_count, sizeof(input_info[0]));
++	if (tmp_input_info == NULL) {
++		/* Don't free up newly allocated input_devices entry.
++		 * Futur reallocarray will ensure that we get at most one empty entry
++		 * in input_devices. */
++		input_count--;
++		close(fd);
++		perror("Couldn't allocate memory to add new device");
++		return;
++	}
++
++	/* Setup poll information */
++	input_devices = tmp_input_devices;
++	input_devices[input_count - 1] = (struct pollfd){
++		.fd = fd,
++		.events = POLLIN,
++	};
++
++	/* Read absolute information */
++	input_info = tmp_input_info;
++	input_info[input_count - 1].has_abs = 0;
++
++	ret = ioctl(fd, EVIOCGABS(ABS_X),
++		    &(input_info[input_count - 1].absinfo_x));
++	if (ret < 0) {
++		return;
++	}
++
++	ret = ioctl(fd, EVIOCGABS(ABS_Y),
++		    &(input_info[input_count - 1].absinfo_y));
++	if (ret < 0) {
++		return;
++	}
++
++	/* We got both ABS X and Y information, input is a valid absolute */
++	input_info[input_count - 1].has_abs = 1;
++
++	printf("Found absolute input %s with maximum X:%d Y:%d\n", path,
++		input_info[input_count - 1].absinfo_x.maximum,
++		input_info[input_count - 1].absinfo_y.maximum);
++}
++
++static void scan_inputs(void)
++{
++	DIR *dir;
++	struct dirent *ent;
++	char path[512];
++	int i;
++	int ret;
++
++	for (i = 0; i < input_count; i++) {
++		close(input_devices->fd);
++	}
++	free(input_devices);
++	free(input_info);
++	input_count = 0;
++
++	dir = opendir(INPUT_PATH);
++	if (dir == NULL) {
++		perror("Couldn't open directory " INPUT_PATH);
++		return;
++	}
++
++	while ((ent = readdir(dir)) != NULL) {
++		open_input(ent->d_name);
++	}
++}
++
++static size_t abs_convert(size_t value, struct input_absinfo *absinfo)
++{
++	return (value * 10000) / absinfo->maximum;
++}
++
++static int read_input(size_t idx)
++{
++	ssize_t read_size, write_size;
++	struct input_event events[MAX_INPUT_PER_READ];
++	size_t ev_i;
++
++	read_size = read(input_devices[idx].fd, &events, sizeof(events));
++	if (read_size < 0) {
++		fprintf(stderr, "%s: Couldnt read file %lu\n", strerror(errno),
++			idx);
++		return -1;
++	}
++
++	if ((read_size % sizeof(events[0])) != 0) {
++		printf("Read size isn't a multiple of structure size %ld, %ld\n",
++		       read_size, sizeof(events[0]));
++		return -1;
++	}
++
++	/* If input is absolute, convert value to be in range 0-10000, as expected by capsules */
++	if (input_info[idx].has_abs) {
++		for (ev_i = 0; ev_i < (read_size / sizeof(events[0])); ev_i++) {
++			if (events[ev_i].type != EV_ABS)
++				continue;
++
++			if (events[ev_i].code == ABS_X) {
++				events[ev_i].value =
++					abs_convert(events[ev_i].value,
++						    &input_info[idx].absinfo_x);
++			}
++
++			if (events[ev_i].code == ABS_Y) {
++				events[ev_i].value =
++					abs_convert(events[ev_i].value,
++						    &input_info[idx].absinfo_y);
++			}
++		}
++	}
++
++	write_size = write(vinput_fd, &events, read_size);
++	if (write_size != read_size) {
++		printf("Not all event wrote\n");
++		return -1;
++	}
++
++	return 0;
++}
++
++int main(int argc, char *argv[])
++{
++	int ready;
++	size_t i;
++
++	vinput_fd = open(VINPUT_DEV, O_WRONLY);
++	if (vinput_fd == -1) {
++		perror("Couldn't open " VINPUT_DEV);
++		return EXIT_FAILURE;
++	}
++
++	scan_inputs();
++
++	while (1) {
++		ready = poll(input_devices, input_count, -1);
++		if (ready == -1) {
++			perror("Couldn't poll files");
++			return EXIT_FAILURE;
++		}
++
++		for (i = 0; i < input_count; i++) {
++			if (!input_devices[i].revents) {
++				continue;
++			}
++
++			if (!(input_devices[i].revents & POLLIN)) {
++				printf("Got not POLLIN for %d\n", i);
++				return EXIT_FAILURE;
++			}
++
++			if (read_input(i) < 0) {
++				return EXIT_FAILURE;
++			}
++		}
++	}
++
++	close(vinput_fd);
++	for (i = 0; i < input_count; i++) {
++		close(input_devices->fd);
++	}
++	free(input_devices);
++	free(input_info);
++
++	return EXIT_SUCCESS;
++}

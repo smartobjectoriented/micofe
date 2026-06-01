@@ -1,0 +1,109 @@
+--- /home/rossierd/soo/micofe/27/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/arch/arm64/boot/dts/broadcom/bcm2711-rpi-4-b.dts	2026-03-23 18:27:32.526573736 +0100
++++ ./arch/arm64/boot/dts/broadcom/bcm2711-rpi-4-b.dts	2026-03-22 19:54:13.857503178 +0100
+@@ -85,3 +85,106 @@
+		reg = <0x28>; /* This is due to the control byte (101) + A2, A1, A0 (000) combination (101000 = 0x28) */
+	};
+ };
++
++/ {
++	agency: agency {
++		backends {
++			vdummy {
++				compatible = "vdummy,backend";
++				status = "disabled";
++			};
++
++			vuart {
++				compatible = "vuart,backend";
++				status = "ok";
++			};
++
++			vlogs {
++				compatible = "vlogs,backend";
++				status = "ok";
++			};
++
++			vfbdev {
++				compatible = "vfbdev,backend";
++				status = "ok";
++			};
++
++			vinput {
++				compatible = "vinput,backend";
++				status = "ok";
++			};
++		};
++	};
++};
++
++&cma {
++	size = <0x10000000>;
++};
++
++&ddc0 {
++	status = "okay";
++};
++
++&ddc1 {
++	status = "okay";
++};
++
++&hdmi0 {
++	status = "okay";
++};
++
++&hdmi1 {
++	status = "okay";
++};
++
++&hvs {
++	status = "okay";
++};
++
++&pixelvalve0 {
++	status = "okay";
++};
++
++&pixelvalve1 {
++	status = "okay";
++};
++
++&pixelvalve2 {
++	status = "okay";
++};
++
++&pixelvalve3 {
++	status = "okay";
++};
++
++&pixelvalve4 {
++	status = "okay";
++};
++
++&v3d {
++	status = "okay";
++};
++
++&vc4 {
++	status = "okay";
++};
++
++&txp {
++	status = "okay";
++};
++
++&fb {
++	status = "disabled";
++};
++
++&firmwarekms {
++	status = "disabled";
++};
++
++&dvp {
++	status = "okay";
++};
++
++&aon_intr {
++	status = "okay";
++};

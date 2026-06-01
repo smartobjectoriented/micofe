@@ -1,0 +1,12 @@
+buildroot
+host
+target
+images
+build
+staging
+fs
+
+Makefile
+board
+fs
+staging

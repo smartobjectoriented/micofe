@@ -1,0 +1,13 @@
+image: gitlab.edgemtech.ch:5050/overall/infrabase/infrabase/edgem-build:latest
+
+pages:
+  tags:
+    - sphinx
+  stage: deploy
+  script:
+    - sphinx-build -b html doc/source/ public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - main

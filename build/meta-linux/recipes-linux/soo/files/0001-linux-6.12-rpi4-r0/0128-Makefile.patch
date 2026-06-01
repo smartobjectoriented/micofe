@@ -1,0 +1,5 @@
+--- /home/cdk/project/micofe/micofe/build/tmp/work/linux-6.12-r0/linux-6.12/soo/drivers/vinputback/Makefile	1970-01-01 01:00:00.000000000 +0100
++++ ./soo/drivers/vinputback/Makefile	2026-04-28 16:34:33.037734565 +0200
+@@ -0,0 +1,2 @@
++obj-y := vinput.o
++
