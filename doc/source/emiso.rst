@@ -14,7 +14,7 @@ services in embedded systems, we propose to use a new model of container based o
 our SOO mobile entity concept which is based itself on the SO3 operating system.
 
 
-.. figure:: pictures/micofe-overview.png
+.. figure:: img/micofe-overview.png
 	:name: _fig-Communication flow
 	:alt: Communication flow
 	:align: center
@@ -68,7 +68,7 @@ Architecture
 
 The following picture depicts the architecture of the EMISO engine.
 
-.. figure:: pictures/micofe-emiso-engine.png
+.. figure:: img/micofe-emiso-engine.png
 	:name: _fig-engine_architecture
 	:alt: Engine Architecture
 	:align: center
@@ -162,7 +162,7 @@ file. The file path for these logs is as follows:
 
 The following image shows an overview of this log's mechanism.
 
-.. figure:: pictures/micofe-logs.png
+.. figure:: img/micofe-logs.png
 	:name: _fig-emiso_engine_logs_flow
 	:alt: EMISO engine logs flow
 	:align: center

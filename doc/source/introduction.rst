@@ -1,19 +1,31 @@
 .. _introduction:
 
 Introduction
-============
+############
 
-``Infrabase`` provides the developer with a base environment to deal with embedded software to be deployed on
-different hardware and emulated boards.
+``MICOFE`` (*Micro-Container for Edge Computing*) aims to provide a lightweight
+micro-container environment based on Arm64 virtualization and the *SO3* operating
+system. SO3 is a lightweight OS that supports key Linux-like features such as
+user/kernel separation, memory paging, and multithreading.
 
-``Infrabase`` harnesses the power of BitBake's highly modular, recipe-driven architecture while seamlessly integrating prebuilt packages into the BitBake ecosystem. This approach is grounded in years of hands-on experience with R&D projects and embedded Linux development, where the typical software stack includes:
+This environment is well suited to provide developers with a strongly isolated
+execution environment where full-featured applications can run alongside Linux.
 
-- A bootloader like U-Boot
-- The Linux kernel
-- The root filesystem
-- A set of user-space applications
+MICOFE targeted several objectives, including:
 
+* Full support for the :ref:`MUSL libc library <syscalls>`
+* :ref:`C++ <cpp>` and Rust support
+* Support for :ref:`LVGL-based graphical applications <lvgl>`
 
+All objectives were achieved except Rust support, which could not be completed
+due to time constraints.
 
+Acknowledgements
+****************
 
+We sincerely appreciate the *Hasler Foundation* for making this ambitious project
+possible and for helping us secure new projects with industrial partners.
 
+We also extend our heartfelt thanks to Clément Dieperink, Jean-Pierre Miceli, and
+Prof. Daniel Rossier from the *REDS Institute* of *HEIG-VD* for their invaluable
+contributions to this project.
