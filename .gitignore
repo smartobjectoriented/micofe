@@ -66,3 +66,7 @@ filesystem/work
 
 #TaMPLate files for the man documentation
 !*.tmpl
+
+# GitHub Actions workflows
+!.github
+!.github/**
