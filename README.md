@@ -5,7 +5,7 @@ It is built using the Infrabase (IB) build system, also available on GitHub.
 
 ## Documentation
 
-The full project documentation is published via GitHub Pages:
+The full project documentation is available here:
 
 **https://smartobjectoriented.github.io/micofe/**
 
