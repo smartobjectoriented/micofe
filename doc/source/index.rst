@@ -1,52 +1,38 @@
 .. doc Documentation master file.
 
-.. image:: img/EDGEMTech.png
+.. image:: img/REDS_HEIG-VD_logotype_rouge-rvb.png
    :align: center
-   :scale: 30%
-   :target: https://edgemtech.com
+   :width: 320px
+   :alt: REDS Institute - HEIG-VD
+   :target: https://reds.heig-vd.ch
+
+|
+
+.. rst-class:: center
+
+MICOFE - Micro-Container for Edge Computing
+###########################################
+
+.. rst-class:: left
+
+MICOFE provides a highly secure, virtualized approach to deploy and manage
+micro-services in embedded systems, combining the SOO mobile entity concept and
+the SO3 operating system with Arm64 virtualization.
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 2
    :numbered:
-   :hidden:
 
    introduction
-   rootfs/rootfs
-   User guide <user_guide>
-   build_system/build_system
-   dev_flow
-   base_extension/base_extension
-   micofe/micofe
-   Coding conventions <coding_conventions>
+   architecture
+   emiso
+   portainer
+   syscalls_alignment
+   cpp
+   lvgl
+   demonstrator
    glossary
 
 |
 
-
-.. rst-class:: center
-
-EDGEMTech Infrabase Devtools & Environment
-##########################################
-
-.. rst-class:: left
-
-Setup and environment
-*********************
-
--  :ref:`User Guide <user_guide>`
-
-.. rst-class:: left
-
-Coding conventions and development flow
-***************************************
-
-- :ref:`Our coding conventions <coding_conventions>`
-- :ref:`Our development flow <dev_flow>`
-
-
 To edit the documentation and to use the correct underlying policy, you can read `this documentation style guide <https://documentation-style-guide-sphinx.readthedocs.io/en/latest/style-guide.html>`_.
-
-
-
-
-

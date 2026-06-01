@@ -38,14 +38,10 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'sphinxcontrib.plantuml',
     'rstFlatTable',
     'sphinx.ext.extlinks',
     'sphinx.ext.imgmath'
 ]
-
-plantuml = 'java  --add-exports java.desktop/com.sun.imageio.plugins.png=ALL-UNNAMED -jar %s -t' % os.path.join(os.path.dirname(__file__), "../utils", "plantuml.jar")
-plantuml_output_format = 'svg'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -60,9 +56,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Infrabase'
+project = u'MICOFE'
 
-copyright = u'2022-2025, EDGEMTech Ltd (Switzerland)'
+copyright = u'2022-2026, REDS Institute (HEIG-VD)'
 
 
 # The version info for the project you're documenting, acts as replacement for
@@ -125,7 +121,6 @@ html_theme = u'default'
 try:
     import sphinx_rtd_theme
     html_theme = 'sphinx_rtd_theme'
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
     def setup(app):
 #        app.add_stylesheet('style.css')
         app.add_css_file('style.css')
@@ -145,6 +140,9 @@ html_theme_options = {'body_max_width': '100%'}
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 html_css_files = ['theme_overrides.css']
+
+# Logo shown at the top of the sidebar (REDS Institute - HEIG-VD).
+html_logo = 'img/REDS_HEIG-VD_logotype_rouge-rvb.png'
 
 # -- Options for HTMLHelp output ------------------------------------------
 # If not None, a 'Last updated on:' timestamp is inserted at every page
@@ -209,7 +207,7 @@ latex_font_size = u'10pt'
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
-latex_documents = [('index', 'Infrabase.tex', u'Infrabase Documentation', u'EDGEMTech Ltd', 'manual')]
+latex_documents = [('index', 'MICOFE.tex', u'MICOFE Documentation', u'REDS Institute', 'manual')]
 
 
 # A dictionary that contains LaTeX snippets that override those Sphinx usually
@@ -235,7 +233,7 @@ latex_elements = {
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-#latex_logo = None
+latex_logo = 'img/REDS_HEIG-VD_logotype_rouge-rvb.png'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
@@ -262,7 +260,7 @@ latex_use_parts = False
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [('index', 'doc', u'Infrabase Documentation', [u'EDGEMTech Ltd'], 1)]
+man_pages = [('index', 'doc', u'MICOFE Documentation', [u'REDS Institute'], 1)]
 
 
 # -- Additional options --------------------------------------------------------
