@@ -23,6 +23,14 @@ due to time constraints.
 Acknowledgements
 ****************
 
+.. image:: img/hasler-foundation.png
+   :align: center
+   :width: 300px
+   :alt: Hasler Foundation
+   :target: https://haslerstiftung.ch
+
+|
+
 We sincerely appreciate the *Hasler Foundation* for making this ambitious project
 possible and for helping us secure new projects with industrial partners.
 
