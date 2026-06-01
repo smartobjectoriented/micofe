@@ -226,3 +226,65 @@ In fine, all syscall available in SO3 are now listed in ``syscall.tbl``. Here is
 
   * Time, ``nanosleep, gettimeofday[_time32], clock_gettime[32]``
   * Network, ``socket, connect, bind, ...``
+
+Toolchain
+*********
+
+To make the MUSL-based environment usable in practice, the project also required a
+complete cross-compilation toolchain able to produce binaries for both ARM32 and
+ARM64 SO3 targets. The toolchain is therefore not a secondary convenience component
+but a core project deliverable, because it turns the kernel and *libc* compatibility
+work described in the previous sections into a reproducible application development
+workflow.
+
+From a project perspective, the role of the toolchain is twofold. First, it provides
+developers with a stable way to build applications that match the exact ABI, startup
+conventions, and library behavior expected by SO3. Second, it ensures that validation
+results are meaningful, because the binaries used during development, testing, and
+demonstration are all produced by the same controlled environment.
+
+Build from source
+=================
+
+The toolchain is built fully from source. This choice improves reproducibility,
+avoids dependence on host-distribution packaging choices, and ensures that the exact
+versions of *binutils*, compiler runtime components, headers, and MUSL integration
+logic are controlled by the project. It also makes it possible to regenerate
+identical environments for development machines, CI runners, and future maintenance
+activities.
+
+Building the full toolchain from source is particularly important in an embedded
+context. Small differences in compiler version, linker behavior, or runtime support
+libraries can lead to subtle differences in binary layout, relocation handling, stack
+initialization, or generated code patterns. By controlling the complete chain, the
+project reduces the risk of hard-to-diagnose mismatches between the generated binaries
+and the SO3 runtime environment.
+
+A dedicated automated build script was developed to orchestrate the complete
+generation process. The script downloads or references the required sources,
+configures the build for the selected target architecture, applies the expected
+project configuration, and produces the final compiler, linker, runtime support
+libraries, and associated *sysroot* in a deterministic way. This automation
+significantly reduces setup time for developers and removes a large class of manual
+integration errors.
+
+The generated toolchain does more than compile plain C programs. It also provides the
+basis required to build :ref:`C++ applications <cpp>`, package capsule workloads, and
+assemble the demonstrator applications. In that sense, it is the practical bridge
+between low-level kernel/libc compatibility and high-level application delivery.
+
+CI integration and maintainability
+==================================
+
+The toolchain work also required integration into the continuous integration
+pipeline. The repository CI/CD workflow was extended so that toolchain builds can be
+generated, validated, and versioned automatically. This makes regressions easier to
+detect when changes are introduced in the kernel *syscall* layer, in the build
+scripts, or in the runtime libraries, because the impact can be observed immediately
+at build time rather than much later during manual testing.
+
+In summary, the toolchain deliverable provides the operational foundation required to
+exploit the MUSL integration work. It standardizes builds, improves reproducibility,
+enables CI-based validation, reduces platform drift, and makes application development
+for SO3 capsules practical for both internal developers and future adopters of the
+platform.

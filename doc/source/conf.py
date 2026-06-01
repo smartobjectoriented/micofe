@@ -58,7 +58,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'MICOFE'
 
-copyright = u'2022-2025, REDS Institute (HEIG-VD)'
+copyright = u'2022-2026, REDS Institute (HEIG-VD)'
 
 
 # The version info for the project you're documenting, acts as replacement for
@@ -121,7 +121,6 @@ html_theme = u'default'
 try:
     import sphinx_rtd_theme
     html_theme = 'sphinx_rtd_theme'
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
     def setup(app):
 #        app.add_stylesheet('style.css')
         app.add_css_file('style.css')
@@ -141,6 +140,9 @@ html_theme_options = {'body_max_width': '100%'}
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 html_css_files = ['theme_overrides.css']
+
+# Logo shown at the top of the sidebar (REDS Institute - HEIG-VD).
+html_logo = 'img/REDS_HEIG-VD_logotype_rouge-rvb.png'
 
 # -- Options for HTMLHelp output ------------------------------------------
 # If not None, a 'Last updated on:' timestamp is inserted at every page
@@ -231,7 +233,7 @@ latex_elements = {
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-#latex_logo = None
+latex_logo = 'img/REDS_HEIG-VD_logotype_rouge-rvb.png'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
