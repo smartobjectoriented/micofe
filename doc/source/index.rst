@@ -1,23 +1,11 @@
 .. doc Documentation master file.
 
-.. image:: img/EDGEMTech.png
-   :align: center
-   :scale: 30%
-   :target: https://edgemtech.com
-
 .. toctree::
    :maxdepth: 5
    :numbered:
    :hidden:
 
-   introduction
-   rootfs/rootfs
-   User guide <user_guide>
-   build_system/build_system
-   dev_flow
-   base_extension/base_extension
-   micofe/micofe
-   Coding conventions <coding_conventions>
+   micofe
    glossary
 
 |
@@ -25,28 +13,19 @@
 
 .. rst-class:: center
 
-EDGEMTech Infrabase Devtools & Environment
-##########################################
+MICOFE - Micro-Container for Edge Computing
+###########################################
 
 .. rst-class:: left
 
-Setup and environment
-*********************
+MICOFE provides a highly secure, virtualized approach to deploy and manage
+micro-services in embedded systems, combining the SOO mobile entity concept
+with the ARM TrustZone technology.
 
--  :ref:`User Guide <user_guide>`
-
-.. rst-class:: left
-
-Coding conventions and development flow
-***************************************
-
-- :ref:`Our coding conventions <coding_conventions>`
-- :ref:`Our development flow <dev_flow>`
+- :ref:`MICOFE overview <micofe>`
+- :ref:`EMISO engine <emiso>`
+- :ref:`Portainer (Container Orchestration User Interface) <portainer>`
+- :ref:`Alignment of syscalls <syscalls>`
 
 
 To edit the documentation and to use the correct underlying policy, you can read `this documentation style guide <https://documentation-style-guide-sphinx.readthedocs.io/en/latest/style-guide.html>`_.
-
-
-
-
-

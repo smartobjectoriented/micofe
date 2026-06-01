@@ -38,14 +38,10 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'sphinxcontrib.plantuml',
     'rstFlatTable',
     'sphinx.ext.extlinks',
     'sphinx.ext.imgmath'
 ]
-
-plantuml = 'java  --add-exports java.desktop/com.sun.imageio.plugins.png=ALL-UNNAMED -jar %s -t' % os.path.join(os.path.dirname(__file__), "../utils", "plantuml.jar")
-plantuml_output_format = 'svg'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -60,9 +56,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Infrabase'
+project = u'MICOFE'
 
-copyright = u'2022-2025, EDGEMTech Ltd (Switzerland)'
+copyright = u'2022-2025, REDS Institute (HEIG-VD)'
 
 
 # The version info for the project you're documenting, acts as replacement for
@@ -209,7 +205,7 @@ latex_font_size = u'10pt'
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
-latex_documents = [('index', 'Infrabase.tex', u'Infrabase Documentation', u'EDGEMTech Ltd', 'manual')]
+latex_documents = [('index', 'MICOFE.tex', u'MICOFE Documentation', u'REDS Institute', 'manual')]
 
 
 # A dictionary that contains LaTeX snippets that override those Sphinx usually
@@ -262,7 +258,7 @@ latex_use_parts = False
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [('index', 'doc', u'Infrabase Documentation', [u'EDGEMTech Ltd'], 1)]
+man_pages = [('index', 'doc', u'MICOFE Documentation', [u'REDS Institute'], 1)]
 
 
 # -- Additional options --------------------------------------------------------
