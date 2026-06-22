@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "Filesystem management"
 DESCRIPTION = "This is the core filesystem recipe to create a virtual or physical \

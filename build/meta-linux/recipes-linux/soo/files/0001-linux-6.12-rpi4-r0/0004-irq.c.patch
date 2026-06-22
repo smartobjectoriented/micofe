@@ -1,5 +1,5 @@
---- /home/rossierd/soo/micofe/27/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/arch/arm64/kernel/irq.c	2026-03-23 18:27:14.611246150 +0100
-+++ ./arch/arm64/kernel/irq.c	2026-03-13 13:24:35.773049136 +0100
+--- /home/rossierd/soo/git/micofe/build/tmp/work/linux-6.12-r0/linux-6.12/arch/arm64/kernel/irq.c	2024-11-17 23:15:08.000000000 +0100
++++ ./arch/arm64/kernel/irq.c	2025-08-29 08:46:39.978048892 +0200
 @@ -27,6 +27,10 @@
  #include <asm/stacktrace.h>
  #include <asm/vmap_stack.h>

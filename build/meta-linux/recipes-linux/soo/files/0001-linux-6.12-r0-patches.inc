@@ -1,3 +1,6 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
+
 SRC_URI:append:soo = "\ 
     file://0071-asf_test.c.patch \ 
     file://0048-guest_api.h.patch \ 
@@ -121,10 +124,8 @@ SRC_URI:append:soo = "\
     file://0125-Makefile.patch \
     file://0126-vlogs.c.patch \
     file://0127-vlogs.h.patch \
-    file://0128-Makefile.patch \
-    file://0129-vfbdev.c.patch \
-    file://0130-vfbdev.h.patch \
-    file://0131-Makefile.patch \
-    file://0132-vinput.c.patch \
-    file://0133-vinput.h.patch \
+    file://0128-vfbdev.c.patch \
+    file://0129-vfbdev.h.patch \
+    file://0130-vinput.c.patch \
+    file://0131-vinput.h.patch \
 "

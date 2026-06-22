@@ -1,5 +1,5 @@
---- /home/rossierd/soo/micofe/27/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/arch/arm64/kernel/smp.c	2026-03-23 18:27:14.613246203 +0100
-+++ ./arch/arm64/kernel/smp.c	2026-03-16 21:04:48.406866037 +0100
+--- /home/rossierd/soo/git/micofe/build/tmp/work/linux-6.12-r0/linux-6.12/arch/arm64/kernel/smp.c	2024-11-17 23:15:08.000000000 +0100
++++ ./arch/arm64/kernel/smp.c	2025-08-29 08:46:39.976376895 +0200
 @@ -53,6 +53,8 @@
  #include <asm/ptrace.h>
  #include <asm/virt.h>
@@ -18,15 +18,7 @@
  	IPI_CPU_STOP_NMI,
  	IPI_TIMER,
  	IPI_IRQ_WORK,
-@@ -99,7 +101,6 @@
- }
- #endif
- 
--
- /*
-  * Boot a secondary CPU, and assign it the specified idle task.
-  * This also gives us the initial stack to use for this CPU.
-@@ -955,7 +956,7 @@
+@@ -955,7 +957,7 @@
  static void do_handle_IPI(int ipinr)
  {
  	unsigned int cpu = smp_processor_id();
@@ -35,7 +27,7 @@
  	if ((unsigned)ipinr < NR_IPI)
  		trace_ipi_entry(ipi_types[ipinr]);
  
-@@ -969,6 +970,17 @@
+@@ -969,6 +971,17 @@
  		break;
  
  	case IPI_CPU_STOP:

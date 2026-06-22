@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "Add-ons for SOO user space environment"
 DESCRIPTION = "Additional applications are used to manage SO3 capsules"
@@ -25,8 +27,6 @@ do_install_apps:append () {
         usr_do_install_file_root "${IB_TARGET}/build/src/soo/shutdownme"
 
         usr_do_install_file_root "${IB_TARGET}/build/src/soo/emiso_engine/emiso_engine"
-        usr_do_install_file_root "${IB_TARGET}/build/src/soo/fb_mapper"
-        usr_do_install_file_root "${IB_TARGET}/build/src/soo/input_forwarding"
     fi
 }
 

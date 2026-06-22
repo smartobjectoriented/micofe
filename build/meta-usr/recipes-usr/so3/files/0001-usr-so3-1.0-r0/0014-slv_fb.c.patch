@@ -1,5 +1,5 @@
 --- build/tmp/work/usr-so3-1.0-r0/usr-so3-1.0/lib/slv/slv_fb.c	2026-01-23 09:53:53.371401254 +0100
-+++ ./lib/slv/slv_fb.c	1970-01-01 01:00:00.000000000 +0100
++++ ./lib/slv/slv_fb.c	2026-01-23 07:53:14.427120833 +0100
 @@ -1,146 +0,0 @@
 -/*
 - * Copyright (C) 2025 André Costa <andre_miguel_costa@hotmail.com>

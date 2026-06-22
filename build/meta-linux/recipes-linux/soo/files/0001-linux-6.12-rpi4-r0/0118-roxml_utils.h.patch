@@ -1,5 +1,5 @@
---- /home/rossierd/soo/micofe/27/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/soo/lib/libroxml/roxml_utils.h	1970-01-01 01:00:00.000000000 +0100
-+++ ./soo/lib/libroxml/roxml_utils.h	2026-03-13 13:24:35.604823861 +0100
+--- /home/rossierd/soo/git/micofe/build/tmp/work/linux-6.12-r0/linux-6.12/soo/lib/libroxml/roxml_utils.h	1970-01-01 01:00:00.000000000 +0100
++++ ./soo/lib/libroxml/roxml_utils.h	2025-08-29 08:46:41.395384524 +0200
 @@ -0,0 +1,127 @@
 +/**
 + * \file roxml_utils.h

@@ -1,3 +1,6 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
+
 SOO_URI:append = "\ 
     file://0020-capsule.cpp.patch \ 
     file://0040-plugins.hpp.patch \ 
@@ -48,6 +51,6 @@ SOO_URI:append = "\
     file://0005-leds.h.patch \ 
     file://0010-core.h.patch \ 
     file://0052-CMakeLists.txt.patch \ 
-    file://0053-fb_mapper.c.patch \ 
-    file://0054-input_forwarding.c.patch \ 
+    file://0053-fb_mapper.c.patch \
+    file://0054-input_forwarding.c.patch \
 "

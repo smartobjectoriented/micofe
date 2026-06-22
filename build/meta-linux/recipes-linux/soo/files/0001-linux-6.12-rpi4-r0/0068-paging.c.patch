@@ -1,6 +1,6 @@
---- /home/rossierd/soo/micofe/27/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/soo/kernel/arm64/paging.c	1970-01-01 01:00:00.000000000 +0100
-+++ ./soo/kernel/arm64/paging.c	2026-03-16 21:08:22.571493942 +0100
-@@ -0,0 +1,78 @@
+--- /home/rossierd/soo/git/micofe/build/tmp/work/linux-6.12-r0/linux-6.12/soo/kernel/arm64/paging.c	1970-01-01 01:00:00.000000000 +0100
++++ ./soo/kernel/arm64/paging.c	2025-08-29 08:46:41.395097877 +0200
+@@ -0,0 +1,76 @@
 +/*
 + * Copyright (C) 2016-2021 Daniel Rossier <daniel.rossier@soo.tech>
 + *
@@ -43,7 +43,7 @@
 +    BUG_ON(!pg);
 + 
 +    pages[0] = pg;
-+    va = vmap(pages, 1, VM_MAP, PAGE_KERNEL);
++    va = vmap(pages, 1, VM_MAP, pgprot_noncached(PAGE_KERNEL));
 +    BUG_ON(!va);
 +    
 +    uncp->vaddr = va;
@@ -54,19 +54,17 @@
 +
 +void free_uncached_zeroed_page(struct uncached_page *p)
 +{
-+    if (!p)
-+	return;
-+
-+    vunmap(p->vaddr);       
-+    __free_page(p->pg);  
++    if (!p) return;
++    vunmap(p->vaddr);       // unmap the uncached VA
++    __free_page(p->pg);   // free the physical page
 +    kfree(p);
 +}
 +
 +void *paging_remap(unsigned long paddr, size_t size) {
 +	void *vaddr;
 +
-+	vaddr = ioremap_cache(paddr, size);  /* Normal WB Cacheable */
-+	BUG_ON(!vaddr);     
++	vaddr = ioremap_wc(paddr, size);
++	BUG_ON(!vaddr);
 +
 +	return vaddr;
 +}

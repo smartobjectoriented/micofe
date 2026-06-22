@@ -1,6 +1,6 @@
 --- /home/rossierd/soo/micofe/build/tmp/work/usr-linux-1.0-r0/usr-linux-1.0/src/soo/emiso_engine/daemon/capsule.cpp	1970-01-01 01:00:00.000000000 +0100
 +++ ./src/soo/emiso_engine/daemon/capsule.cpp	2025-10-10 17:28:33.593649878 +0200
-@@ -0,0 +1,543 @@
+@@ -0,0 +1,542 @@
 +/*
 + * Copyright (C) 2023 Jean-Pierre Miceli <jean-pierre.miceli@heig-vd.ch>
 + *
@@ -260,7 +260,6 @@
 +        return EXIT_FAILURE;
 +    }
 +
-+    free(args.buffer);
 +    close(fd);
 +
 +    return args.slotID;

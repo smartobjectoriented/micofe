@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "Linux Operating System"
 DESCRIPTION = "Linux OS used as main domain running on the embedded platform"
@@ -11,15 +13,15 @@ OVERRIDES += ":linux"
 
 inherit linux
 
-SRC_URI = "git://github.com/raspberrypi/linux.git;branch=rpi-6.12.y;tag=stable_20250916;protocol=https"
+SRC_URI = "git://github.com/raspberrypi/linux.git;branch=rpi-6.12.y;tag=stable_20250702;protocol=https"
 
-SRCREV = "359f37f0faefb712add32a39f98751aea67d5c1f"
+SRCREV = "8f77e03530f65209a377d25023e912b288e039cd"
 
 # Set of patches to be applied
 
 # These patches contain rpi4 64-bits enhancement
 FILESPATH:prepend = "${THISDIR}/files/0001-${PF}:"
-
+ 
 require files/0001-${PF}-patches.inc
 
 # Where the working directory will be placed in infrabase root dir

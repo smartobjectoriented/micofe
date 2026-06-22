@@ -70,3 +70,7 @@ filesystem/work
 # GitHub Actions workflows
 !.github
 !.github/**
+
+# do_attach_infrabase manifests (build artifacts)
+*.attach.sha256
+*.back/

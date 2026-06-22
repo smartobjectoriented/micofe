@@ -1,6 +1,6 @@
 --- /home/rossierd/soo/git/micofe/build/tmp/work/linux-6.12-r0/linux-6.12/arch/arm64/configs/virt64_soo_defconfig	1970-01-01 01:00:00.000000000 +0100
 +++ ./arch/arm64/configs/virt64_soo_defconfig	2025-08-29 08:46:39.970708755 +0200
-@@ -0,0 +1,8990 @@
+@@ -0,0 +1,8995 @@
 +#
 +# Automatically generated file; DO NOT EDIT.
 +# Linux/arm64 6.12.0 Kernel Configuration
@@ -4585,10 +4585,17 @@
 +CONFIG_DUMMY_CONSOLE=y
 +CONFIG_DUMMY_CONSOLE_COLUMNS=80
 +CONFIG_DUMMY_CONSOLE_ROWS=25
-+# CONFIG_FRAMEBUFFER_CONSOLE is not set
++CONFIG_FRAMEBUFFER_CONSOLE=y
++# CONFIG_FRAMEBUFFER_CONSOLE_LEGACY_ACCELERATION is not set
++CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
++# CONFIG_FRAMEBUFFER_CONSOLE_ROTATION is not set
++# CONFIG_FRAMEBUFFER_CONSOLE_DEFERRED_TAKEOVER is not set
 +# end of Console display driver support
 +
-+# CONFIG_LOGO is not set
++CONFIG_LOGO=y
++# CONFIG_LOGO_LINUX_MONO is not set
++# CONFIG_LOGO_LINUX_VGA16 is not set
++CONFIG_LOGO_LINUX_CLUT224=y
 +# end of Graphics support
 +
 +# CONFIG_DRM_ACCEL is not set
@@ -8987,7 +8994,5 @@
 +# CONFIG_VSENSELED_BACKEND is not set
 +# CONFIG_VSENSEJ_BACKEND is not set
 +CONFIG_VLOGS_BACKEND=y
-+CONFIG_VFBDEV_BACKEND=y
-+CONFIG_VINPUT_BACKEND=y
 +# end of Smart Object Oriented subsystem
 +# end of SOO Framework and subsystems

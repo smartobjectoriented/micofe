@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "Linux Operating System running as guest on AVZ"
 DESCRIPTION = "Linux OS used as main domain (agency) running on the embedded platform"

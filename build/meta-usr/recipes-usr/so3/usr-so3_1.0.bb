@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "User space applications for SO3"
 DESCRIPTION = "All (SO3) user space custom applications which take place in the rootfs of SO3"
@@ -9,7 +11,11 @@ inherit usr
 PR = "r0"
 PV = "1.0"
 
-OVERRIDES += ":so3"
+# Use :append (not +=) so no space is inserted before ":so3". With +=,
+# OVERRIDES becomes "...:arm :so3" and the CPU token parses as "arm "
+# (trailing space), so :arm overrides like IB_MUSL_TARGET:arm never
+# collapse — breaking the musl toolchain PATH on virt32.
+OVERRIDES:append = ":so3"
 
 # These patches bring lv_port_linux/lvgl in the usr structure
 FILESPATH:prepend = "${THISDIR}/files/0001-${PF}:"
@@ -21,7 +27,40 @@ IB_TARGET = "${IB_DIR}/so3/usr"
 
 IB_TOOLCHAIN_PATH = "${IB_TARGET}/${IB_PLAT_CPU}-linux-musl.cmake"
 
+# lvgl is FETCHED at build time (see the meta-usr/recipes-usr/lvgl
+# usr-so3 bbappend, gated on the :lvgl override) into usr/lib/lvgl — it is
+# NOT a committed git submodule. do_fetch/do_unpack/do_attach therefore run
+# so the bbappend's do_handle_fetch_git can pull lvgl into the workdir and
+# attach it back into usr/.
+#
+# do_patch stays noexec: the slv/lvgl integration patches are already baked
+# into the in-tree usr/ source, so re-applying them fails (reversed patch).
+do_patch[noexec] = "1"
+
 do_build[depends] = "rootfs-so3:do_build"
+
+# The user space is cross-compiled with the SO3 musl toolchain built by
+# the musl-toolchain recipe (meta-toolchain). Make it available and put
+# its bin/ on PATH so the bare compiler names in the cmake toolchain
+# file (e.g. aarch64-linux-musl-gcc) resolve.
+do_build[depends] += "musl-toolchain:do_build"
+do_build:prepend () {
+	export PATH="${IB_MUSL_TOOLCHAIN_DIR}/${IB_MUSL_TARGET}/bin:$PATH"
+
+	# The cmake build dir caches the toolchain (CMakeCache.txt pins the
+	# compiler), so switching IB_PLATFORM between virt64 and virt32
+	# (aarch64<->arm) would otherwise keep producing wrong-arch user
+	# binaries (e.g. an aarch64 init.elf on a 32-bit kernel -> prefetch
+	# abort at boot). Wipe build/ when the arch changes; same-arch
+	# rebuilds stay incremental. The marker lives at the usr/ root so it
+	# survives the build/ wipe.
+	_arch_marker="${IB_TARGET}/.ib_last_arch"
+	if [ -f "$_arch_marker" ] && [ "$(cat $_arch_marker)" != "${IB_PLAT_CPU}" ]; then
+		echo "SO3 usr arch changed ($(cat $_arch_marker) -> ${IB_PLAT_CPU}); wiping build/"
+		rm -rf ${IB_TARGET}/build
+	fi
+	echo "${IB_PLAT_CPU}" > "$_arch_marker"
+}
 
 # Make sure so3 has been installed correctly to fetch other components if required
 do_unpack[depends] += "so3:do_attach_infrabase"
@@ -40,14 +79,18 @@ python do_deploy() {
         
         src_dir = os.path.join(d.getVar('IB_TARGET'), 'build', 'deploy')
         dst_dir = os.path.join(d.getVar('IB_ROOTFS_PATH'), 'fs')
-        
-        cmd = f"cp -r {src_dir}/. {dst_dir}/"
-        
+
+        # The SO3 rootfs.fat is loop-mounted at rootfs/fs as root
+        # (rootfs/mount.sh), so the copy must be privileged. The split
+        # debug-info files (*.debug) are host-side gdb symbols, not
+        # runtime artifacts — keep them out of the (small) rootfs.
+        # -r only (no -a): vfat rejects chown/owner/perms preservation.
+        cmd = f"sudo rsync -rL --exclude='*.debug' {src_dir}/ {dst_dir}/"
+
         result = subprocess.run(cmd, shell=True, check=True)
         
         __do_rootfs_umount(d)
     else:
-        utils_restore_user_ownership(d)
         bb.fatal("Hum, it seeems the so3 usr has not been built correctly - rootfs missing...")
     
 }
@@ -65,7 +108,14 @@ do_install_apps () {
         usr_do_install_file_dir "${IB_TARGET}/out/*" .
 }
 
-do_clean:append () {
-    rm -f ${TMPDIR}/stamps/usr-so3*
+# Python (not shell) to match the Python do_clean in usr.bbclass and to
+# avoid the shell-task temp/fifo failure. Removes this recipe's stamps.
+python do_clean:append() {
+    import glob, os
+    for f in glob.glob(d.getVar('TMPDIR') + '/stamps/usr-so3*'):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
 }
 

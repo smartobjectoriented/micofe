@@ -19,7 +19,7 @@
  	};
  
  	timer {
-@@ -403,4 +404,46 @@
+@@ -403,4 +404,36 @@
  		compatible = "fixed-clock";
  	};
  
@@ -50,16 +50,6 @@
 +			
 +			vlogs {
 +				compatible = "vlogs,backend";
-+				status = "ok";
-+			};
-+
-+			vfbdev {
-+				compatible = "vfbdev,backend";
-+				status = "ok";
-+			};
-+
-+			vinput {
-+				compatible = "vinput,backend";
 +				status = "ok";
 +			};
 +		};

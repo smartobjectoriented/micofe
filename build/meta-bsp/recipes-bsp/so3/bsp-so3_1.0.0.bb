@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "SO3 Board Support Package"
 DESCRIPTION = "SO3 Board Support Package (BSP) which builds the whole set of software components \
@@ -14,16 +16,25 @@ inherit uboot
 inherit logging
 inherit bsp
 
-OVERRIDES += ":so3"
+# :append (not +=) so no space is inserted before ":so3" — otherwise the
+# preceding CPU token parses as "arm "/"aarch64 " and :<cpu> overrides
+# stop matching. See usr-so3_1.0.bb for the full rationale.
+OVERRIDES:append = ":so3"
 
 include ../bsp/files/bsp_${IB_PLATFORM}.inc
 
 do_configure[noexec] = "1"
 do_attach_infrabase[noexec] = "1"
 
-# Building all components
-
-do_build[depends] = "usr-so3:do_build uboot:do_build" 
+# Building all components.
+#
+# Every platform needs U-Boot: on QEMU it is the bare U-Boot payload, on
+# verdin-imx8mp it is U-Boot wrapped into imx-boot/flash.bin (ATF + OP-TEE +
+# U-Boot) by the uboot recipe. verdin additionally needs the AVZ hypervisor
+# (bundled by the AVZ+SO3 ITS), so its dependency set is overridden to add it.
+IB_BSP_BUILD_DEPENDS = "usr-so3:do_build uboot:do_build"
+IB_BSP_BUILD_DEPENDS:verdin-imx8mp = "usr-so3:do_build uboot:do_build avz:do_build"
+do_build[depends] = "${IB_BSP_BUILD_DEPENDS}"
 
 do_build () {
 	bbplain "Everything built OK ..."
@@ -41,7 +52,21 @@ do_itb () {
 	else
 		mkimage -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ${IB_ITB_PATH}/${IB_TARGET_ITS}.itb
 	fi
-	
+
+	# AVZ boot uses a SEPARATE guest ITB (loaded alongside the AVZ ITB by
+	# the e1c-boot U-Boot command). The guest ITS is derived from the
+	# selected AVZ ITS: <plat>_avz -> <plat>_so3_guest (deriving from
+	# IB_TARGET_ITS, not IB_PLATFORM, keeps the underscore naming on
+	# platforms whose IB_PLATFORM carries a hyphen, e.g. verdin-imx8mp).
+	case "${IB_TARGET_ITS}" in
+	*_avz)
+		guest_its="${IB_TARGET_ITS%_avz}_so3_guest"
+		if [ -f ${IB_ITB_PATH}/${guest_its}.its ]; then
+			mkimage -f ${IB_ITB_PATH}/${guest_its}.its ${IB_ITB_PATH}/${guest_its}.itb
+		fi
+		;;
+	esac
+
 }
 
 do_deploy[depends] = "usr-so3:do_deploy"

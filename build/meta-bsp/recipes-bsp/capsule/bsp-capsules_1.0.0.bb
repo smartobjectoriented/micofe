@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "SO3 capsule Deployment"
 DESCRIPTION = "SO3 capsules are aimed to run with Linux as guest on top of the AVZ hypervisor."
@@ -13,7 +15,10 @@ inherit uboot
 inherit logging
 inherit bsp
 
-OVERRIDES += ":so3"
+# :append (not +=) so no space is inserted before ":so3" — otherwise the
+# preceding CPU token parses as "arm "/"aarch64 " and :<cpu> overrides
+# stop matching. See usr-so3_1.0.bb for the full rationale.
+OVERRIDES:append = ":so3"
 
 do_configure[noexec] = "1"
 do_attach_infrabase[noexec] = "1"

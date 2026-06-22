@@ -1,4 +1,7 @@
-LVGL_FILES = "\ 
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
+
+SRC_URI += "\ 
     file://0026-lvgl_benchmark.c.patch \ 
     file://0023-CMakeLists.txt.patch \ 
     file://0010-CMakeLists.txt.patch \ 
@@ -19,5 +22,3 @@ LVGL_FILES = "\
     file://0015-slv_fb.h.patch \ 
     file://0028-lvgl_perf.c.patch \ 
 "
-SRC_URI += "${LVGL_FILES}"
-SRC_URI:remove:lvgl = "${LVGL_FILES}"
