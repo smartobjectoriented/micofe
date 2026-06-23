@@ -48,7 +48,12 @@ python do_deploy() {
         bb.fatal("The root directory is not present in the second partition; please deploy rootfs...")
 
 
-    os.system("cp -r {}/build/deploy/* {}/{}/".format(IB_USR_PATH, IB_FILESYSTEM_PATH, IB_ROOTFS_PARTITION))
+    # Copy as root: the rootfs cpio extraction (run via sudo) creates /root
+    # owned by root (0700), and bitbake runs unprivileged — a plain cp would
+    # be denied and silently drop the apps. check=True so a failure is no
+    # longer swallowed (the old os.system() ignored the return code, which is
+    # why the soo apps never reached the agency /root).
+    utils_sudo("cp -r {}/build/deploy/* {}/{}/".format(IB_USR_PATH, IB_FILESYSTEM_PATH, IB_ROOTFS_PARTITION), shell=True, check=True)
 
     __do_fs_umount(d)
 }
