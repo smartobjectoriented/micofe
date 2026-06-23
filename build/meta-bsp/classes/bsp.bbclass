@@ -64,7 +64,10 @@ python () {
 
 python do_deploy_boot_chain () {
     plat = d.getVar('IB_PLATFORM') or '?'
-    chain = d.getVar('IB_BOOT_CHAIN') or '?'
+    # Empty IB_BOOT_CHAIN is the valid "bare U-Boot" mode (treated as "uboot"
+    # in __do_platform_boot_chain) — label it so the log doesn't read like a
+    # misconfiguration.
+    chain = d.getVar('IB_BOOT_CHAIN') or 'uboot (bare)'
     bb.plain(f"Deploy boot chain for platform {plat} (chain={chain})")
 
     try:
