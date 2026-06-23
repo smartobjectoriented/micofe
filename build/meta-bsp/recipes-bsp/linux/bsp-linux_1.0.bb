@@ -20,6 +20,13 @@ inherit atf
 
 OVERRIDES += ":linux"
 
+# Kind of guest carried by the second (x1) ITB in the AVZ two-ITB boot.
+# For bsp-linux the guest is the Linux agency (Linux runs as the AVZ
+# agency hosting the SO3 capsules) -> <plat>_avz pairs with
+# <plat>_linux_guest. bsp-so3 keeps the default "so3_guest". The shared
+# deploy (__deploy_arm_common) reads this to locate the guest ITB.
+IB_AVZ_GUEST = "linux_guest"
+
 COMPATIBLE_PLATFORM = "virt32|virt64|rpi4_64"
 
 do_attach_infrabase[noexec] = "1"
@@ -44,23 +51,33 @@ do_itb[nostamp] = "1"
 
 do_itb () {
 
-	if [ "${IB_BOOT_CHAIN}" = "full" ]; then
-		# AVZ mode: wrap Linux (agency) into the AVZ ITB.
-
-		if [ ! -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ]; then
-			bbfatal "No corresponding ITS found (${IB_TARGET_ITS})"
-		fi
-		mkimage -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ${IB_ITB_PATH}/${IB_PLATFORM}_avz.itb
-	else
-		# Bare bsp-linux (IB_BOOT_CHAIN ∈ {uboot, atf+uboot}): single
-		# plain ITB from ${IB_PLATFORM}.its with the buildroot initrd
-		# bundled in. Direct bootm by U-Boot, no AVZ wrapping.
-
-		if [ ! -f ${IB_ITB_PATH}/${IB_PLATFORM}.its ]; then
-			bbfatal "No bare ITS found at ${IB_ITB_PATH}/${IB_PLATFORM}.its"
-		fi
-		mkimage -f ${IB_ITB_PATH}/${IB_PLATFORM}.its ${IB_ITB_PATH}/${IB_PLATFORM}.itb
+	# Build the selected ITB from its ITS (AVZ ITB for the *_avz target,
+	# or a plain single ITB otherwise). Mirrors bsp-so3:do_itb.
+	if [ ! -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ]; then
+		bbfatal "No corresponding ITS found (${IB_TARGET_ITS})"
 	fi
+	mkimage -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ${IB_ITB_PATH}/${IB_TARGET_ITS}.itb
+
+	# AVZ boot uses a SEPARATE guest ITB loaded alongside the AVZ ITB by
+	# the e1c-boot U-Boot command (AVZ FIT in x0, guest ITB in x1). For
+	# bsp-linux the guest is the Linux agency: <plat>_avz -> <plat>_linux_guest
+	# (IB_AVZ_GUEST). Deriving from IB_TARGET_ITS keeps the underscore
+	# naming on hyphenated platforms (e.g. verdin-imx8mp).
+	# NB: assign IB_TARGET_ITS to a shell var before the ${var%_avz}
+	# parameter expansion — bitbake does not pass ${IB_TARGET_ITS%_avz}
+	# through to the shell (it resolves the literal ${...} itself), so the
+	# strip must run on a real shell variable.
+	its="${IB_TARGET_ITS}"
+	case "$its" in
+	*_avz)
+		guest_its="${its%_avz}_${IB_AVZ_GUEST}"
+		if [ -f ${IB_ITB_PATH}/${guest_its}.its ]; then
+			mkimage -f ${IB_ITB_PATH}/${guest_its}.its ${IB_ITB_PATH}/${guest_its}.itb
+		else
+			bbfatal "No guest ITS found at ${IB_ITB_PATH}/${guest_its}.its"
+		fi
+		;;
+	esac
 }
 
 # do_prepare_initrd: gzip rootfs.cpio (produced by usr-linux:do_deploy)

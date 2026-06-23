@@ -20,11 +20,14 @@ def __deploy_arm_common(d):
     plat = d.getVar('IB_PLATFORM')
     its = d.getVar('IB_TARGET_ITS') or ""
     IB_UENV = d.getVar("IB_UENV")
+    # Kind of x1 guest in the AVZ two-ITB boot: "so3_guest" (bsp-so3) or
+    # "linux_guest" (bsp-linux agency). Set per recipe; default so3_guest.
+    guest_kind = d.getVar('IB_AVZ_GUEST') or "so3_guest"
 
     if its.endswith("_avz"):
         # Two-ITB AVZ boot.
         avz_itb = f"{itb_dir}/{its}.itb"
-        guest_itb = f"{itb_dir}/{its[:-len('_avz')]}_so3_guest.itb"
+        guest_itb = f"{itb_dir}/{its[:-len('_avz')]}_{guest_kind}.itb"
         avz_uenv = os.path.join(os.path.dirname(IB_UENV), f"uEnv_{plat}_avz.txt")
 
         for f in (avz_itb, guest_itb, avz_uenv):
