@@ -74,3 +74,11 @@ filesystem/work
 # do_attach_infrabase manifests (build artifacts)
 *.attach.sha256
 *.back/
+
+# --- Build-generated / attached at build time (materialized from patch sets / fetch) ---
+/linux/usr/include/core/
+/linux/usr/include/soo/
+/linux/usr/src/graphic/
+/linux/usr/src/soo/
+/linux/usr/src/lvgl/
+/filesystem/u-boot.bin
