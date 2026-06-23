@@ -39,10 +39,13 @@ launch_qemu() {
       fi
     done < build/conf/local.conf
 
-    # Detect a SO3-on-AVZ boot from the selected (uncommented) so3 ITS.
-    # AVZ is an EL2 hypervisor, so QEMU must expose EL2 (virtualization=on);
-    # a standalone SO3 boots at EL1.
+    # Detect an AVZ boot from the selected (uncommented) ITS. AVZ is an EL2
+    # hypervisor, so QEMU must expose EL2 (virtualization=on); a standalone
+    # SO3 / plain Linux boots at EL1. Either context can be the AVZ guest:
+    #   * SO3 on AVZ        -> IB_TARGET_ITS:so3:<plat>   = <plat>_avz
+    #   * Linux agency on AVZ-> IB_TARGET_ITS:linux:<plat> = <plat>_avz (MICOFE)
     SO3_ITS=$(grep -E "^IB_TARGET_ITS:so3:${IB_PLATFORM}\b" build/conf/local.conf | awk -F'"' '{print $2}' | tail -1)
+    LINUX_ITS=$(grep -E "^IB_TARGET_ITS:linux:${IB_PLATFORM}\b" build/conf/local.conf | awk -F'"' '{print $2}' | tail -1)
 
     if [ "$IB_PLATFORM" == "virt64" ]; then
     QEMU_BIN="$IB_ROOT_DIR/qemu/build/qemu-system-aarch64"
@@ -72,13 +75,13 @@ launch_qemu() {
         # ATF/OP-TEE chain (flash0/FIP): EL3 (secure=on) + EL2 enabled.
         MACHINE_OPT="-M virt,virtualization=on,gic-version=2,secure=on"
         BOOT_OPT="-drive if=pflash,format=raw,file=filesystem/flash0.img"
-    elif [[ "$SO3_ITS" == *avz* ]]; then
-        # SO3-on-AVZ via the ITS, no ATF: AVZ is an EL2 hypervisor, so QEMU
-        # must expose EL2 (virtualization=on). The U-Boot here is
-        # virt64_defconfig (FIP/EL2-aware), so it runs fine at EL2 and hands
-        # off to AVZ at EL2. Without this, AVZ faults on its first EL2
+    elif [[ "$SO3_ITS" == *avz* || "$LINUX_ITS" == *avz* ]]; then
+        # AVZ via the ITS (SO3 guest or Linux agency), no ATF: AVZ is an EL2
+        # hypervisor, so QEMU must expose EL2 (virtualization=on). The U-Boot
+        # here is virt64_defconfig (FIP/EL2-aware), so it runs fine at EL2 and
+        # hands off to AVZ at EL2. Without this, AVZ faults on its first EL2
         # system-register access (Synchronous Abort -> reset).
-        echo "AVZ guest (ITS=$SO3_ITS) — enabling EL2 (virtualization=on)"
+        echo "AVZ guest (so3=$SO3_ITS linux=$LINUX_ITS) — enabling EL2 (virtualization=on)"
         MACHINE_OPT="-M virt,gic-version=2,virtualization=on"
         BOOT_OPT="-kernel u-boot/u-boot"
     else

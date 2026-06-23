@@ -52,9 +52,13 @@
 	};
 
 	configurations {
-		default = "agency";
+		/* Node name MUST be "capsule": U-Boot's e1c-boot command looks
+		 * up the guest config by that fixed name (cmd/e1c_boot.c:
+		 * e1c_load_fit(e1c_itb, "capsule", ...)). Same slot as the SO3
+		 * guest; here it carries the Linux agency. */
+		default = "capsule";
 
-		agency {
+		capsule {
 			description = "SOO Linux agency on virt64";
 			loadables = "linux";
 			fdt = "fdt";
