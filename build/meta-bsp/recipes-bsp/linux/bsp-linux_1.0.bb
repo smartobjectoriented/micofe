@@ -88,6 +88,16 @@ do_itb () {
 # in place — the content-hash guard below picks up the new content and
 # regenerates initrd.cpio.gz.
 
+# MICOFE uses a 2-stage rootfs (NOT the so3/edgem1 full-initramfs model):
+# the committed REDS minimal ramdisk (meta-rootfs .../files/board/${IB_PLATFORM}/
+# initrd.cpio, ~6 MB) is bundled in the guest ITS and switch_root's to the
+# full agency rootfs on /dev/vda2 (p2, deployed by rootfs-linux). So this
+# task is DISABLED: regenerating initrd.cpio from the ~96 MB rootfs.cpio
+# (shutil.copy2 below) would clobber the ramdisk and overflow the p1 FAT
+# boot partition. (Future option: repurpose this task to assemble/refresh
+# the ramdisk instead of committing it as a static file.)
+do_prepare_initrd[noexec] = "1"
+
 do_prepare_initrd[nostamp] = "1"
 do_prepare_initrd[depends] = "usr-linux:do_deploy"
 
