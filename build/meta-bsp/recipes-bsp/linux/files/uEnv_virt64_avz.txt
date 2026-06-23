@@ -7,4 +7,10 @@ initrd_high=ffffffffffffffff
 # the agency guest from x1). EL2 is required (st.sh enables
 # -M virt,virtualization=on).
 
+# Agency kernel cmdline: e1c-boot propagates this 'bootargs' env into the
+# agency guest's /chosen (cmd/e1c_boot.c: env_get("bootargs") + fdt_chosen).
+# console=ttyAMA0 routes the boot log to the serial console; loglevel=8
+# shows all kernel messages during boot.
+bootargs=console=ttyAMA0 loglevel=8
+
 start=load virtio 0 0x65000000 virt64_avz.itb; load virtio 0 0x70000000 virt64_guest.itb; e1c-boot 0x65000000 0x70000000
