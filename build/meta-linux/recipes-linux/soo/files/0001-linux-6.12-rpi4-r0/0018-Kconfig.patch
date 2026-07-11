@@ -1,6 +1,6 @@
 --- /home/rossierd/soo/git/micofe/build/tmp/work/linux-6.12-r0/linux-6.12/soo/drivers/Kconfig	1970-01-01 01:00:00.000000000 +0100
 +++ ./soo/drivers/Kconfig	2025-08-29 08:46:41.395616621 +0200
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,54 @@
 +#
 +# SOO device configuration
 +#
@@ -39,6 +39,16 @@
 +	help
 +	  The vlogs driver is used to logs Capsules logs - logs are store in
 +	  `/var/log/soo/capsule_N.log` (N corresponds to the SlotID of the capsule).
++
++config VFBDEV_BACKEND
++	bool "vfbdev Framebuffer Backend support for SOO Capsules"
++	help
++	  The vfbdev driver is used to allow capsules to access a framebuffer from Linux.
++
++config VINPUT_BACKEND
++	bool "vinput Input support for SOO Capsules"
++	help
++	  The vinput driver is used to allow capsules to access a mouse/keyboard inputs from Linux.
 +
 +endmenu
 +	

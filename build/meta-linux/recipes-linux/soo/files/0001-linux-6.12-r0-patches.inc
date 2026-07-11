@@ -128,4 +128,6 @@ SRC_URI:append:soo = "\
     file://0129-vfbdev.h.patch \
     file://0130-vinput.c.patch \
     file://0131-vinput.h.patch \
+    file://0132-Makefile.patch \
+    file://0133-Makefile.patch \
 "

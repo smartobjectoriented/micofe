@@ -1,6 +1,6 @@
 --- /home/rossierd/soo/micofe/build/tmp/work/linux-6.12-rpi4-r0/linux-6.12-rpi4/arch/arm64/configs/rpi4_64_nomodules_soo_defconfig	1970-01-01 01:00:00.000000000 +0100
 +++ ./arch/arm64/configs/rpi4_64_nomodules_soo_defconfig	2026-02-13 12:39:28.107216945 +0100
-@@ -0,0 +1,5437 @@
+@@ -0,0 +1,5439 @@
 +#
 +# Automatically generated file; DO NOT EDIT.
 +# Linux/arm64 6.12.34 Kernel Configuration
@@ -5436,5 +5436,7 @@
 +CONFIG_VUART_BACKEND=y
 +# CONFIG_VLEDS_BACKEND is not set
 +CONFIG_VLOGS_BACKEND=y
++CONFIG_VFBDEV_BACKEND=y
++CONFIG_VINPUT_BACKEND=y
 +# end of Smart Object Oriented subsystem
 +# end of SOO Framework and subsystems
