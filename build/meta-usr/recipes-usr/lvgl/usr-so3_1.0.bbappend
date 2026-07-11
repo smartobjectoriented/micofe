@@ -33,7 +33,12 @@ python do_handle_fetch_git() {
 
     target_dir = d.getVar('S')
     dst_dir = os.path.join(target_dir, 'lib', 'lvgl')
-  
+
+    # Since SO3 v6.2.0 the fetched so3/usr no longer ships lib/lvgl (LVGL is
+    # fetched separately, not a submodule), so retrieve_usr_dir does not create
+    # it — create the destination before copying into it.
+    os.makedirs(dst_dir, exist_ok=True)
+
     # Fetch the submodules using full path
     # Copy everything except .git, preserving symlinks/metadata
     cmd = (
