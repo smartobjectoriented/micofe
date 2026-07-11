@@ -51,7 +51,7 @@
   * @return int 
   */
 int main(int argc, char *argv[]) {
-	int fd_migration, fd, ret;
+	int fd_core, fd, ret;
 	int nread, S3C_size;
 	void *S3C_buffer;
 	struct stat filestat;
@@ -72,18 +72,18 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (optind >= argc) {
-		fprintf(stderr, "Expected ME file path after options\n");
+		fprintf(stderr, "Expected S3C file path after options\n");
 		exit(EXIT_FAILURE);
 	}
 
 	char *s3c_file_path = argv[optind];
 
-	printf("SOO ME injector (Smart Object Oriented based virtualization framework).\n");
+	printf("SOO S3C injector (Smart Object Oriented based virtualization framework).\n");
 	printf("Version: %s\n", SOO_VERSION);
 
-	fd_migration = open(SOO_CORE_DEVICE, O_RDWR);
-	if (fd_migration < 0) {
-		printf("Failed to open device: " SOO_CORE_DEVICE " (%d)\n", fd_migration);
+	fd_core = open(SOO_CORE_DEVICE, O_RDWR);
+	if (fd_core < 0) {
+		printf("Failed to open device: " SOO_CORE_DEVICE " (%d)\n", fd_core);
 		exit(EXIT_FAILURE);
 	}
 
@@ -98,16 +98,16 @@ int main(int argc, char *argv[]) {
 
 	S3C_size = filestat.st_size;
 
-	/* Allocate the ME buffer */
+	/* Allocate the S3C buffer */
 	S3C_buffer = malloc(S3C_size);
 	assert(S3C_buffer != NULL);
 
 	DBG("agency_core: size to read from sd : %d, buffer address : 0x%08lx\n", S3C_size, (unsigned long) S3C_buffer);
 
-	/* Read the ME content  */
+	/* Read the S3C content  */
 	nread = read(fd, S3C_buffer, S3C_size);
 	if (nread < 0) {
-		printf("Error when reading the ME\n");
+		printf("Error when reading the S3C\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -116,18 +116,18 @@ int main(int argc, char *argv[]) {
 	args.value = S3C_size;
 	args.slotID = -1; /* Wherever */
 
-	if ((ret = ioctl(fd_migration, AGENCY_IOCTL_INJECT_CAPSULE, &args)) < 0) {
-		printf("Failed to inject ME (%d)\n", ret);
+	if ((ret = ioctl(fd_core, AGENCY_IOCTL_INJECT_CAPSULE, &args)) < 0) {
+		printf("Failed to inject S3C (%d)\n", ret);
 		exit(EXIT_FAILURE);
 	}
 
 	if (args.slotID == -1) {
-		printf("No available ME slot further...\n");
+		printf("No available S3C slot further...\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if (!hold_capsule) {
-		ioctl(fd_migration, AGENCY_IOCTL_START_CAPSULE, &args);
+		ioctl(fd_core, AGENCY_IOCTL_START_CAPSULE, &args);
 	}
 
 	close(fd);

@@ -36,14 +36,14 @@ int main(int argc, char *argv[]) {
 	size_t buffer_size;
 	struct zip_t *zip;
 
-        printf("*** SOO - SO3 Capsule snapshot restorer ***\n");
+        printf("*** SOO - Mobile Entity snapshot restorer ***\n");
 
 	if (argc != 2) {
-		printf("## Usage is : restoreme <filename> where <filename> is the file containing the ME snapshot.\n");
+		printf("## Usage is : s3c-restore <filename> where <filename> is the file containing the S3C snapshot.\n");
 		exit(-1);
 	}
 
-	printf("** Now reading the ME snapshot.\n");
+	printf("** Now reading the S3C snapshot.\n");
 
 	fd_core = open("/dev/soo/core", O_RDWR);
 	assert(fd_core > 0);
@@ -63,14 +63,14 @@ int main(int argc, char *argv[]) {
 
 	zip_close(zip);
         
-	printf("  ** ME memory re-implantation and resuming the capsule.\n");
+	printf("  ** S3C memory re-implantation and resuming the capsule.\n");
 
 	args.slotID = -1;
 	ioctl(fd_core, AGENCY_IOCTL_WRITE_SNAPSHOT, &args);
 
 	close(fd_core);
 
-	printf("  ** ME successfully restored and resumed...\n");
+	printf("  ** S3C successfully restored and resumed...\n");
 
 	return 0;
 }

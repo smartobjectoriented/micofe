@@ -30,20 +30,20 @@ int main(int argc, char *argv[]) {
 	int fd_core;
 	agency_ioctl_args_t agency_ioctl_args;
 
-	printf("*** SOO - SO3 Capsule shutdown ***\n");
+	printf("*** SOO - Mobile Entity shutdown ***\n");
 
 	if (argc != 2) {
-		printf("## Usage is : shutdownme <ME ID (1-5)>\n");
+		printf("## Usage is : s3c-shutdown <S3C ID (1-5)>\n");
 		exit(-1);
 	}
 
-	printf("** Perform a shutdown of ME #%d (slotID %d)...", atoi(argv[1]), atoi(argv[1])+1);
+	printf("** Perform a shutdown of S3C #%d (slotID %d)...", atoi(argv[1]), atoi(argv[1])+1);
 	fflush(stdout);
 
 	fd_core = open("/dev/soo/core", O_RDWR);
 	assert(fd_core > 0);
 
-	/* Prepare to terminate the running ME (dom #2) */
+	/* Prepare to terminate the running S3C (dom #2) */
 
 	agency_ioctl_args.slotID = atoi(argv[1]) + 1;
 

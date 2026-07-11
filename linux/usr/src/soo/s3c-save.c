@@ -35,10 +35,10 @@ int main(int argc, char *argv[]) {
 	struct zip_t *zip;
         struct agency_ioctl_args args;
        
-        printf("*** SOO - SO3 Capsule snapshot saver ***\n");
+        printf("*** SOO - Mobile Entity snapshot saver ***\n");
 
 	if (argc != 2) {
-		printf("## Usage is : saveme <filename> where <filename> is the file containing the ME snapshot.\n");
+		printf("## Usage is : s3c-save <filename> where <filename> is the file containing the S3C snapshot.\n");
 		exit(-1);
 	}
 
