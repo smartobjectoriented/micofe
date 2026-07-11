@@ -46,10 +46,17 @@ Where
 Service
 *******
 
-A ``emiso`` service has been added to help control the engine. Currently this
-service only starts the ``emiso-engine``.
+A ``emiso`` systemd service exists to help control the engine on
+systemd-based root file systems.
 
-Usage:
+.. note::
+
+	The current MICOFE agency boots with **SysVinit** (busybox), so the
+	systemd unit is inert there — start the engine from the agency shell
+	(``/root/emiso_engine &``, log on its stdout) or wire an
+	``/etc/init.d`` script.
+
+Usage on a systemd rootfs:
 
 * Control
 
@@ -83,9 +90,10 @@ The different blocks of the engine are:
 Daemon
 ******
 
-The EMISO engine *Daemon* provides an interface to interact with the SO3 capsule.
-SO3 capsule are SOO Mobile Entity (ME). ME has been instrumented to be controlled
-by the daemon.
+The EMISO engine *Daemon* provides an interface to interact with the SO3
+capsules (S3C — the concept formerly called *Mobile Entity*). The capsules are
+controlled by the daemon through the SOO core driver (``/dev/soo/core``), the
+same interface used by the ``s3c-*`` command line tools.
 
 The following table provides the mapping between the Docker and SO3 elements. The
 Docker elements which are not present in the table - like volumes, networks, … -
@@ -112,7 +120,8 @@ SO3 Images
 ==========
 
 An SO3 capsule image consists in a SO3 “itb” file. These images are stored in
-``/root/capsule/`` folder.
+the ``/mnt/capsules/image/`` folder of the agency (populated by
+``deploy.sh bsp-capsules``, see :doc:`build`).
 
 SO3 Capsule - Creation
 ========================
@@ -158,7 +167,7 @@ is sent to the Linux kernel via the VLOGS backend/frontend drives.
 The logged messages are stored in dedicated log files. Each capsule has its own
 file. The file path for these logs is as follows:
 
-* File path: ``/var/log/soo/me_<ME_slotID>.log``
+* File path: ``/var/log/soo/s3c_<slotID>.log``
 
 The following image shows an overview of this log's mechanism.
 
@@ -171,10 +180,48 @@ The following image shows an overview of this log's mechanism.
 
 The behaviors is implemented this way:
 * **SO3 Capsule**: The ``logs`` function has been added to SO3 containers. This
-function adds ``[ME:<SLOT ID>]`` prefix to the messages.
+function adds ``[S3C:<SLOT ID>]`` prefix to the messages.
 * **linux**: syslog-ng has been configured to store the messages with this prefix
 in the logs files.
 
 .. note::
 
-	All the ``me_<ME_slotID>.log`` files are deleted at boot time
+	All the ``s3c_<slotID>.log`` files are deleted at boot time
+
+Quick validation
+****************
+
+The engine listens on port **2375** (the standard Docker daemon port). The
+whole container lifecycle can be exercised from the agency shell with the
+busybox ``wget``:
+
+.. code-block:: shell
+
+	/root/emiso_engine &
+
+	# Docker-compatible discovery (what Portainer probes)
+	wget -q -O - http://127.0.0.1:2375/_ping          # -> OK
+	wget -q -O - http://127.0.0.1:2375/version        # -> ApiVersion 1.43, engine 1.0
+	wget -q -O - http://127.0.0.1:2375/images/json    # -> lists virt64_capsule.itb
+
+	# Container lifecycle (create = inject + snapshot + shutdown)
+	wget -q -O - --post-data='{"Image":"virt64_capsule"}' \
+	    "http://127.0.0.1:2375/containers/create?name=demo1"   # -> {"Id": "0"}
+	wget -q -O - --post-data= http://127.0.0.1:2375/containers/0/start
+	wget -q -O - http://127.0.0.1:2375/containers/json         # -> State "running"
+
+``s3c-list`` then reports the capsule as ``S3C_state_living``, and its console
+shows up on the multiplexed agency serial console.
+
+.. note::
+
+	Container Ids start at 0, and a *created* (not started) container does
+	not appear in ``/containers/json`` — by design, creation snapshots the
+	capsule and shuts it down until ``start`` restores it.
+
+.. note::
+
+	The snapshot path performs a single 128 MB DMA allocation, so the agency
+	guest needs the 160 MB CMA pool (``linux,cma`` in ``virt64_guest.dts``,
+	inherited from the SO3 base since v6.2.1-rc). With a smaller pool the
+	``create`` request freezes on a kernel BUG.

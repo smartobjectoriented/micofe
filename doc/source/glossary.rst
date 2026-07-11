@@ -36,8 +36,14 @@ Glossary
       running container.
 
    Mobile Entity
-      Also abbreviated *ME*. The :term:`SOO` virtualization concept of a self-contained,
-      migratable execution unit on which SO3 capsules are based.
+      Also abbreviated *ME*. The historical :term:`SOO` name of the concept now
+      called the :term:`SO3 Capsule` (S3C): a self-contained execution unit that
+      can be injected, snapshotted and restored. The term only survives in older
+      code and papers.
+
+   SO3 Capsule
+      Also abbreviated *S3C*. The current name of the :term:`mobile entity`
+      concept; see :term:`Capsule`.
 
    EMISO
       The engine, running in the :term:`agency domain` user space, that manages the

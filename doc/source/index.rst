@@ -25,6 +25,7 @@ the SO3 operating system with Arm64 virtualization.
 
    introduction
    architecture
+   build
    emiso
    portainer
    syscalls_alignment
