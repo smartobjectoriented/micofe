@@ -23,7 +23,7 @@
 
 #define FILENAME_MAX_LEN	80
 
-#define SOO_S3C_DIRECTORY 	"/mnt/ME"
+#define SOO_S3C_DIRECTORY 	"/mnt/S3C"
 #define SOO_BOOT_PART		"/mnt/boot/"
 #define SOO_ROOTFS_P2 		"/mnt/rootfs1/"
 #define SOO_ROOTFS_P4 		"/mnt/rootfs2/"

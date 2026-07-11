@@ -24,15 +24,15 @@
 #define MAX_S3C_DOMAINS	5
 
 /*
- * ME states:
+ * S3C states:
  * - S3C_state_stopped:		Capsule is stopped (right after start or later)
- * - S3C_state_living:		ME is full-functional and activated (all frontend devices are consistent)
- * - S3C_state_suspended:	ME is suspended before migrating. This state is maintained for the resident ME instance
- * - S3C_state_hibernate:	ME is in a state of hibernate snapshot
- * - S3C_state_resuming:         ME ready to perform resuming (after recovering)
- * - S3C_state_awakened:         ME is just being awakened
- * - S3C_state_terminated:	ME has been terminated (by a shutdown)
- * - S3C_state_dead:		ME does not exist
+ * - S3C_state_living:		S3C is full-functional and activated (all frontend devices are consistent)
+ * - S3C_state_suspended:	S3C is suspended (e.g. before taking a snapshot)
+ * - S3C_state_hibernate:	S3C is in a state of hibernate snapshot
+ * - S3C_state_resuming:         S3C ready to perform resuming (after recovering)
+ * - S3C_state_awakened:         S3C is just being awakened
+ * - S3C_state_terminated:	S3C has been terminated (by a shutdown)
+ * - S3C_state_dead:		S3C does not exist
  */
 typedef enum {
 	S3C_state_stopped,
@@ -47,17 +47,17 @@ typedef enum {
 } S3C_state_t;
 
 /* Keep information about slot availability
- * FREE:	the slot is available (no ME)
- * BUSY:	the slot is allocated a ME
+ * FREE:	the slot is available (no S3C)
+ * BUSY:	the slot is allocated a S3C
  */
 typedef enum { S3C_SLOT_FREE, S3C_SLOT_BUSY } S3C_slotState_t;
 
-/* ME ID related information */
+/* S3C ID related information */
 #define S3C_NAME_SIZE 40
 #define S3C_SHORTDESC_SIZE 1024
 
 /*
- * Definition of ME ID information used by functions which need
+ * Definition of S3C ID information used by functions which need
  * to get a list of running MEs with their information.
  */
 typedef struct {
@@ -71,7 +71,7 @@ typedef struct {
 } S3C_id_t;
 
 /*
- * IOCTL commands for migration.
+ * IOCTL commands for S3C management.
  * This part is shared between the kernel and user spaces.
  */
 

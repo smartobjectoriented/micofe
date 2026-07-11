@@ -41,8 +41,6 @@ extern bool opt_nosend;
 /* To indicate f the main agency cycle loop is interrupted */
 extern bool ag_cycle_interrupted;
 
-int initialize_migration(unsigned int S3C_slotID);
-
 int get_S3C_free_slot(size_t S3C_size);
 
 bool get_S3C_id(uint32_t slotID, S3C_id_t *S3C_id);
@@ -51,10 +49,7 @@ void read_S3C_snapshot(unsigned int slotID, void **buffer, uint32_t *buffer_size
 void write_S3C_snapshot(unsigned int slotID, unsigned char *S3C_buffer);
 
 void *prepare_S3C_slot(unsigned int slotID);
-int finalize_migration(unsigned int slotID);
 
 void main_loop(int cycle_period);
-
-void migration_init(void);
 
 #endif /* CORE_H */

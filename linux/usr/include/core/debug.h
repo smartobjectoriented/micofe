@@ -38,7 +38,6 @@
 #else
 
 #define DBG(fmt, ...)
-#define RTDBG(fmt, ...)
 #define DBG0(...)
 #define DBG_BUFFER(buffer, ...)
 #define DBG_ON__
