@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 	size_t buffer_size;
 	struct zip_t *zip;
 
-        printf("*** SOO - Mobile Entity snapshot restorer ***\n");
+        printf("*** SOO - SO3 Capsule snapshot restorer ***\n");
 
 	if (argc != 2) {
 		printf("## Usage is : s3c-restore <filename> where <filename> is the file containing the S3C snapshot.\n");

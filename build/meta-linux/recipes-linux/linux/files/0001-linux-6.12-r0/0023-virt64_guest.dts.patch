@@ -1,5 +1,5 @@
---- /dev/null	2026-03-20 16:30:38.468300202 +0100
-+++ ./arch/arm64/boot/dts/arm/virt64_guest.dts	2026-03-20 16:55:19.220277261 +0100
+--- a/arch/arm64/boot/dts/arm/virt64_guest.dts
++++ b/arch/arm64/boot/dts/arm/virt64_guest.dts
 @@ -0,0 +1,425 @@
 +/dts-v1/;
 +
@@ -16,7 +16,7 @@
 +		linux,cma {
 +			compatible = "shared-dma-pool";
 +            		reusable;
-+            		size = <0x0 0xa000000>;
++            		size = <0x0 0x6000000>;
 +			alignment = <0x0 0x1000>;
 +            		linux,cma-default;
 +		};
