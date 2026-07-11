@@ -3,8 +3,8 @@
 # Create the SOO core device node used by the capsule management
 # applications (s3c-inject, s3c-save, ...). The soo core driver
 # registers char major 126 (soo/core) but does not create the node
-# itself, and this agency boots with SysVinit (no systemd, no udev)
-# so it must be created here.
+# itself, and this rootfs boots with busybox init (no systemd, no
+# udev) so it must be created here.
 
 case "$1" in
 start)
