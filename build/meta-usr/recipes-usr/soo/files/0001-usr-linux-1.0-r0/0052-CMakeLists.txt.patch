@@ -1,5 +1,0 @@
---- a/src/CMakeLists.txt
-+++ b/src/CMakeLists.txt
-@@ -1 +1,2 @@
- add_subdirectory(examples)
-+add_subdirectory(soo)
