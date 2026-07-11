@@ -21,10 +21,12 @@ IB_TARGET = "${IB_SO3_PATH}"
 
 # MICOFE is a separate repository and does not embed the SO3 sources, so the
 # kernel is FETCHED from the SO3 repo (unlike the SO3 tree itself, which builds
-# in place). Track the latest SO3 (branch 255: build-system→infrabase + SOO
-# capsule + new logo). Bump SRCREV to follow upstream SO3 changes.
+# in place). Pinned to the SO3 v6.2.0 release tag (build-system→infrabase +
+# SOO capsule + new logo). The bitbake git fetcher takes the tag's commit as
+# SRCREV; IB_SO3_TAG records the human-readable tag it corresponds to.
+IB_SO3_TAG = "v6.2.0"
 SRC_URI = "git://github.com/smartobjectoriented/so3.git;nobranch=1;protocol=https"
-SRCREV = "60f6da75c8969d2710c0e98572f2a43febb6a34b"
+SRCREV = "c6001712742296973b1a601f58a7db91b3abbffe"
 
 # MICOFE-specific SO3 patches applied on top of the fetched tree.
 # Generate/refresh the set with `bitbake so3 -c updiff` (do_diffcompose
