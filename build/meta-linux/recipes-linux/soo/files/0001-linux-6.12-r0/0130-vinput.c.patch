@@ -65,7 +65,7 @@
 +
 +
 +/*
-+ * Add a new destination for a new ME.
++ * Add a new destination for a new S3C.
 + */
 +static void add_destination(struct vbus_device *vdev_destination)
 +{
@@ -80,7 +80,7 @@
 +}
 +
 +/*
-+ * Search for a destination related to a specific ME according to its domid.
++ * Search for a destination related to a specific S3C according to its domid.
 + */
 +static struct vbus_device *get_destination(uint32_t domid)
 +{
@@ -93,7 +93,7 @@
 +}
 +
 +/*
-+ * Remove a destination attached to a specific ME
++ * Remove a destination attached to a specific S3C
 + */
 +static void del_destination(struct vbus_device *vdev_destination)
 +{
@@ -145,7 +145,7 @@
 + * - If the state is not Connected, the character is pushed into a circular buffer that
 + *   will be flushed at the next call to the Connected callback.
 + */
-+void me_cons_send_input(domid_t domid, struct input_event *event)
++void s3c_cons_send_input(domid_t domid, struct input_event *event)
 +{
 +	struct vbus_device *destination;
 +	vinput_priv_t *vinput_priv;
@@ -242,7 +242,7 @@
 +	DBG(VINPUT_PREFIX "Backend reconfigured: %d\n", vdev->otherend_id);
 +
 +	/*
-+	 * Set up a ring (shared page & event channel) between the agency and the ME.
++	 * Set up a ring (shared page & event channel) between the agency and the S3C.
 +	 */
 +
 +	vbus_gather(VBT_NIL, vdev->otherend, "ring-ref", "%lu",
@@ -295,7 +295,7 @@
 +			return -EFAULT;
 +		}
 +
-+		me_cons_send_input(vfb_get_focus(), &event);
++		s3c_cons_send_input(vfb_get_focus(), &event);
 +	}
 +
 +	return len;

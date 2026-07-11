@@ -61,6 +61,6 @@
 +
 +} vinput_t;
 +
-+void me_cons_send_input(domid_t domid, struct input_event *event);
++void s3c_cons_send_input(domid_t domid, struct input_event *event);
 +
 +#endif /* VINPUT_H */
