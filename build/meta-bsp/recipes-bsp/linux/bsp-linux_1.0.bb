@@ -18,14 +18,14 @@ inherit bsp
 inherit uboot
 inherit atf
 
-OVERRIDES += ":linux"
+# ITS templates live in the layer (rendered into IB_ITB_PATH by do_itb)
+IB_ITS_SRC = "${THISDIR}/files/its"
 
-# Kind of guest carried by the second (x1) ITB in the AVZ two-ITB boot.
-# For bsp-linux the guest is the Linux agency (Linux runs as the AVZ
-# agency hosting the SO3 capsules) -> <plat>_avz pairs with
-# <plat>_linux_guest. bsp-so3 keeps the default "so3_guest". The shared
-# deploy (__deploy_arm_common) reads this to locate the guest ITB.
-IB_AVZ_GUEST = "linux_guest"
+# AVZ two-ITB boot: the Linux agency guest ITB is <plat>_linux_guest.itb
+# (the AVZ ITB carries only the hypervisor, like the SO3 case).
+IB_GUEST_SUFFIX = "_linux_guest"
+
+OVERRIDES += ":linux"
 
 COMPATIBLE_PLATFORM = "virt32|virt64|rpi4_64"
 
@@ -51,52 +51,43 @@ do_itb[nostamp] = "1"
 
 do_itb () {
 
-	# Build the selected ITB from its ITS (AVZ ITB for the *_avz target,
-	# or a plain single ITB otherwise). Mirrors bsp-so3:do_itb.
+	# ITS are rendered into IB_ITB_PATH by the shared do_render_its (before
+	# do_itb); this task only mkimage's them. The boot shape is selected by
+	# the ITS name (mirroring bsp-so3 and __deploy_arm_common), NOT by
+	# IB_BOOT_CHAIN — AVZ boots fine on the bare U-Boot chain (EL2 via
+	# QEMU virtualization=on), ATF/OP-TEE is an independent choice.
 	if [ ! -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ]; then
 		bbfatal "No corresponding ITS found (${IB_TARGET_ITS})"
 	fi
 	mkimage -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ${IB_ITB_PATH}/${IB_TARGET_ITS}.itb
 
-	# AVZ boot uses a SEPARATE guest ITB loaded alongside the AVZ ITB by
-	# the e1c-boot U-Boot command (AVZ FIT in x0, guest ITB in x1). For
-	# bsp-linux the guest is the Linux agency: <plat>_avz -> <plat>_linux_guest
-	# (IB_AVZ_GUEST). Deriving from IB_TARGET_ITS keeps the underscore
-	# naming on hyphenated platforms (e.g. verdin-imx8mp).
-	# NB: assign IB_TARGET_ITS to a shell var before the ${var%_avz}
-	# parameter expansion — bitbake does not pass ${IB_TARGET_ITS%_avz}
-	# through to the shell (it resolves the literal ${...} itself), so the
-	# strip must run on a real shell variable.
-	its="${IB_TARGET_ITS}"
-	case "$its" in
+	# AVZ boot uses a SEPARATE guest ITB (loaded alongside the AVZ ITB by
+	# the guest-boot U-Boot command). The guest ITS (<plat>_avz -> <plat> +
+	# IB_GUEST_SUFFIX) is rendered by do_render_its.
+	case "${IB_TARGET_ITS}" in
 	*_avz)
-		guest_its="${its%_avz}_${IB_AVZ_GUEST}"
-		if [ -f ${IB_ITB_PATH}/${guest_its}.its ]; then
-			mkimage -f ${IB_ITB_PATH}/${guest_its}.its ${IB_ITB_PATH}/${guest_its}.itb
-		else
-			bbfatal "No guest ITS found at ${IB_ITB_PATH}/${guest_its}.its"
+		guest_its="$(echo "${IB_TARGET_ITS}" | sed 's/_avz$//')${IB_GUEST_SUFFIX}"
+		if [ ! -f ${IB_ITB_PATH}/${guest_its}.its ]; then
+			bbfatal "No Linux guest ITS found (${guest_its})"
 		fi
+		mkimage -f ${IB_ITB_PATH}/${guest_its}.its ${IB_ITB_PATH}/${guest_its}.itb
 		;;
 	esac
 }
 
-# do_prepare_initrd: gzip rootfs.cpio (produced by usr-linux:do_deploy)
-# into initrd.cpio.gz so do_itb /incbin/'s it. Lived in the FC capsule
-# bbappend originally; moved here so bare bsp-linux (no capsule layer
-# loaded) still gets a fresh initrd in the bare ITB. The FC bbappend's
-# do_inject_kernel_modules still runs before this, editing rootfs.cpio
-# in place — the content-hash guard below picks up the new content and
-# regenerates initrd.cpio.gz.
-
-# MICOFE uses a 2-stage rootfs (NOT the so3/edgem1 full-initramfs model):
-# the committed REDS minimal ramdisk (meta-rootfs .../files/board/${IB_PLATFORM}/
-# initrd.cpio, ~6 MB) is bundled in the guest ITS and switch_root's to the
-# full agency rootfs on /dev/vda2 (p2, deployed by rootfs-linux). So this
-# task is DISABLED: regenerating initrd.cpio from the ~96 MB rootfs.cpio
-# (shutil.copy2 below) would clobber the ramdisk and overflow the p1 FAT
-# boot partition. (Future option: repurpose this task to assemble/refresh
-# the ramdisk instead of committing it as a static file.)
-do_prepare_initrd[noexec] = "1"
+# do_prepare_initrd: gzip the selected cpio into initrd.cpio.gz so do_itb
+# /incbin/'s it. Lived in the FC capsule bbappend originally; moved here so
+# bare bsp-linux (no capsule layer loaded) still gets a fresh initrd in the
+# bare ITB. The FC bbappend's do_inject_kernel_modules still runs before
+# this, editing rootfs.cpio in place — the content-hash guard below picks
+# up the new content and regenerates initrd.cpio.gz.
+#
+# IB_RAMFS_SOURCE selects which cpio becomes the embedded ramfs (default in
+# bsp.bbclass):
+#   "rootfs" - board/<plat>/rootfs.cpio, the freshly built full rootfs.
+#   "initrd" - board/<plat>/initrd.cpio, a static git-tracked busybox ramfs.
+# Either way the result is gzipped straight into initrd.cpio.gz; we never
+# overwrite the (now meaningful) static initrd.cpio.
 
 do_prepare_initrd[nostamp] = "1"
 do_prepare_initrd[depends] = "usr-linux:do_deploy"
@@ -109,25 +100,35 @@ python do_prepare_initrd () {
 
     IB_ROOTFS_PATH = d.getVar('IB_ROOTFS_PATH')
     IB_PLATFORM    = d.getVar('IB_PLATFORM')
+    ramfs_source   = (d.getVar('IB_RAMFS_SOURCE') or "rootfs").strip()
 
     board_dir      = os.path.join(IB_ROOTFS_PATH, "board", IB_PLATFORM)
-    src            = os.path.join(board_dir, "rootfs.cpio")
-    initrd         = os.path.join(board_dir, "initrd.cpio")
-    initrd_gz      = initrd + ".gz"
-    src_hash_file  = src + ".sha256"
+    initrd_gz      = os.path.join(board_dir, "initrd.cpio.gz")
+
+    if ramfs_source == "rootfs":
+        src = os.path.join(board_dir, "rootfs.cpio")
+    elif ramfs_source == "initrd":
+        src = os.path.join(board_dir, "initrd.cpio")
+    else:
+        bb.fatal("IB_RAMFS_SOURCE must be 'rootfs' or 'initrd', got '{}'".format(ramfs_source))
 
     if not os.path.exists(src):
-        bb.fatal("rootfs.cpio not found: {}".format(src))
+        bb.fatal("ramfs source not found: {} (IB_RAMFS_SOURCE={})".format(src, ramfs_source))
 
-    # Content hash instead of mtime: __do_rootfs_umount always rewrites
-    # rootfs.cpio with a fresh mtime even when content is unchanged, so
-    # mtime would force false rebuilds. sha256 fixes both directions.
+    # Guard against rebuilds. Content hash instead of mtime: __do_rootfs_umount
+    # always rewrites rootfs.cpio with a fresh mtime even when content is
+    # unchanged, so mtime would force false rebuilds. The mode is folded into
+    # the stored value so toggling IB_RAMFS_SOURCE always invalidates the gz,
+    # even if the new source happens to hash to a previously seen value.
 
     h = hashlib.sha256()
     with open(src, 'rb') as f:
         for chunk in iter(lambda: f.read(65536), b''):
             h.update(chunk)
-    current_hash = h.hexdigest()
+    current_hash = "{}:{}".format(ramfs_source, h.hexdigest())
+
+    # Single mode-aware guard file, decoupled from the source filename.
+    src_hash_file = initrd_gz + ".srchash"
 
     if os.path.exists(initrd_gz) and os.path.exists(src_hash_file):
         with open(src_hash_file, 'r') as f:
@@ -136,9 +137,9 @@ python do_prepare_initrd () {
             bb.plain("initrd.cpio.gz is up to date, skipping")
             return
 
-    bb.plain("Prepare initrd.cpio.gz from rootfs.cpio")
-    shutil.copy2(src, initrd)
-    with open(initrd, 'rb') as f_in, gzip.open(initrd_gz, 'wb') as f_out:
+    bb.plain("Prepare initrd.cpio.gz from {} (IB_RAMFS_SOURCE={})".format(
+        os.path.basename(src), ramfs_source))
+    with open(src, 'rb') as f_in, gzip.open(initrd_gz, 'wb') as f_out:
         shutil.copyfileobj(f_in, f_out)
     with open(src_hash_file, 'w') as f:
         f.write(current_hash)
@@ -147,8 +148,17 @@ python do_prepare_initrd () {
 addtask do_prepare_initrd before do_itb
 
 # Deploy everything
+#
+# Deploy is decoupled from the build: it writes the already-built artefacts
+# onto the boot media WITHOUT recompiling. It pulls rootfs-linux:do_deploy
+# (which extracts the final rootfs.cpio — apps baked in at build time — onto
+# p2) and writes the .itb produced by do_itb during `build.sh -a` onto p1
+# (__do_platform_deploy). It does NOT pull do_build / do_itb / usr-linux's
+# rootfs.cpio populate — those belong to `build.sh -a`. Workflow:
+# edit -> build.sh -> deploy.sh. A deploy with no prior build fails clearly
+# (missing rootfs.cpio / .itb) rather than silently rebuilding.
 
-do_deploy[depends] = "filesystem:do_fs_check usr-linux:do_deploy"
+do_deploy[depends] = "filesystem:do_fs_check rootfs-linux:do_deploy"
 
 do_deploy[nostamp] = "1"
 python do_deploy() {
@@ -158,10 +168,9 @@ python do_deploy() {
     __do_deploy_boot(d);
 }
 
-# Wire do_itb before both do_build (so `build.sh -a` produces the
-# .itb artefacts) and do_deploy (so a standalone `deploy.sh -a` still
-# triggers the assembly through sstate misses).
-addtask do_itb before do_build before do_deploy
+# do_itb runs in the BUILD chain only (it produces the .itb that deploy
+# consumes); deploy must not re-trigger it.
+addtask do_itb before do_build
 addtask do_deploy
 
 do_deploy_boot[nostamp] = "1"
@@ -173,7 +182,6 @@ python do_deploy_boot() {
 
     __do_deploy_boot(d)
 }
-addtask do_itb before do_deploy_boot
 addtask do_deploy_boot
 
 do_clean[depends] = "usr-linux:do_clean rootfs-linux:do_clean linux:do_clean uboot:do_clean"

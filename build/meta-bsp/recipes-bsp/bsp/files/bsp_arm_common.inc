@@ -6,7 +6,7 @@
 # Two deployment shapes, selected by the chosen ITS:
 #   * AVZ two-ITB boot (IB_TARGET_ITS ends in "_avz"): stage the AVZ ITB
 #     (<plat>_avz.itb) AND the SO3 guest ITB (<plat>_guest.itb) plus the
-#     uEnv_<plat>_avz.txt that loads both and jumps via U-Boot's e1c-boot
+#     uEnv_<plat>_avz.txt that loads both and jumps via U-Boot's guest-boot
 #     command (AVZ FIT in x0, guest ITB in x1). The guest ITB is derived
 #     from IB_TARGET_ITS: <its-without-_avz>_so3_guest.itb.
 #   * Single-ITB bootm (any other ITS): the standalone SO3 / Linux image.
@@ -20,14 +20,13 @@ def __deploy_arm_common(d):
     plat = d.getVar('IB_PLATFORM')
     its = d.getVar('IB_TARGET_ITS') or ""
     IB_UENV = d.getVar("IB_UENV")
-    # Kind of x1 guest in the AVZ two-ITB boot: "so3_guest" (bsp-so3) or
-    # "linux_guest" (bsp-linux agency). Set per recipe; default so3_guest.
-    guest_kind = d.getVar('IB_AVZ_GUEST') or "so3_guest"
 
     if its.endswith("_avz"):
-        # Two-ITB AVZ boot.
+        # Two-ITB AVZ boot. The guest ITB basename is OS-specific
+        # (_so3_guest for SO3, _linux_guest for the Linux agency).
+        guest_suffix = d.getVar('IB_GUEST_SUFFIX') or "_so3_guest"
         avz_itb = f"{itb_dir}/{its}.itb"
-        guest_itb = f"{itb_dir}/{its[:-len('_avz')]}_{guest_kind}.itb"
+        guest_itb = f"{itb_dir}/{its[:-len('_avz')]}{guest_suffix}.itb"
         avz_uenv = os.path.join(os.path.dirname(IB_UENV), f"uEnv_{plat}_avz.txt")
 
         for f in (avz_itb, guest_itb, avz_uenv):

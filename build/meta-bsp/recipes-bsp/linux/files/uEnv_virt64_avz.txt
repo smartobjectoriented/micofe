@@ -1,16 +1,19 @@
 fdt_high=ffffffffffffffff
 initrd_high=ffffffffffffffff
 
-# AVZ boot on virt64: two ITBs (AVZ + Linux agency guest) loaded to
-# staging addresses, then jumped via the e1c-boot U-Boot command which
-# passes the AVZ FIT in x0 and the guest ITB in x1 (AVZ loadAgency loads
-# the agency guest from x1). EL2 is required (st.sh enables
-# -M virt,virtualization=on).
+# Linux (agency) guest kernel cmdline. Propagated into the guest FDT
+# /chosen/bootargs by the guest-boot command (env_get("bootargs") +
+# fdt_chosen()). console=ttyAMA0 + earlycon bind the kernel log to the
+# PL011 UART so the full boot is visible; loglevel=8 keeps debug output.
+# root=/dev/ram: the kernel always boots the embedded initramfs. In
+# IB_RAMFS_SOURCE="initrd" mode the small busybox /init then mounts the
+# ext4 rootfs on p2 (/dev/vda2, virtio-blk) and switch_root's into it —
+# the kernel never mounts a disk root itself. Harmless in "rootfs" mode.
+bootargs=console=ttyAMA0 earlycon=pl011,0x9000000 loglevel=8 root=/dev/ram
 
-# Agency kernel cmdline: e1c-boot propagates this 'bootargs' env into the
-# agency guest's /chosen (cmd/e1c_boot.c: env_get("bootargs") + fdt_chosen).
-# console=ttyAMA0 routes the boot log to the serial console; loglevel=8
-# shows all kernel messages during boot.
-bootargs=console=ttyAMA0 loglevel=8
+# AVZ boot on virt64: two ITBs (AVZ + SO3 guest) loaded to staging
+# addresses, then jumped via the guest-boot U-Boot command which passes the
+# AVZ FIT in x0 and the guest ITB in x1 (AVZ loadAgency loads the guest
+# from x1). EL2 is required (st.sh enables -M virt,virtualization=on).
 
-start=load virtio 0 0x65000000 virt64_avz.itb; load virtio 0 0x70000000 virt64_guest.itb; e1c-boot 0x65000000 0x70000000
+start=load virtio 0 0x65000000 virt64_avz.itb; load virtio 0 0x70000000 virt64_guest.itb; guest-boot 0x65000000 0x70000000

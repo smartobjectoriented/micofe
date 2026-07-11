@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2020-2026 REDS Institute, HEIG-VD
- * Author: Daniel Rossier <daniel.rossier@heig-vd.ch>
+ * Copyright (C) 2020 Daniel Rossier <daniel.rossier@heig-vd.ch>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -11,52 +10,50 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- */
-
-/*
- * SO3 capsule ITB template for virt64. The ${IB_*_PATH} placeholders are
- * expanded to absolute build paths by bsp_render_its (bsp-capsules do_itb)
- * before mkimage, so this template is machine-independent while the rendered
- * ITS in ${IB_ITB_PATH} carries resolved /incbin paths.
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
  */
 
 /dts-v1/;
 
 / {
-	description = "SO3 capsule components for virt64 (armv8) environment";
+	description = "Kernel and rootfs components for rpi4_64 (armv8) environment";
 
 	images {
 
-		so3 {
+	so3 {
 			description = "SO3 OS kernel";
 			data = /incbin/("${IB_SO3_PATH}/so3/so3.bin");
 			type = "guest";
 			arch = "arm64";
 			os = "linux";
 			compression = "none";
-			load = <0x41080000>;
+            		load = <0x41080000>;
 			entry = <0x41080000>;
 		};
 
-		fdt {
+        fdt {
 			description = "Flattened Device Tree blob";
-			data = /incbin/("${IB_SO3_PATH}/so3/dts/virt64_capsule.dtb");
+			data = /incbin/("${IB_SO3_PATH}/so3/dts/rpi4_64_capsule.dtb");
 			type = "flat_dt";
 			arch = "arm64";
 			compression = "none";
 			load = <0x43000000>;
 		};
 
-		ramfs {
-			description = "SO3 environment minimal rootfs";
+        ramfs {
+        	description = "SO3 environment minimal rootfs";
 			data = /incbin/("${IB_ROOTFS_PATH}/rootfs.fat");
 			type = "ramdisk";
 			arch = "arm64";
 			os = "linux";
 			compression = "none";
 			load = <0x43500000>;
-		};
-	};
+    	};
+
+};
 
 	configurations {
 		default = "so3_ramfs";
@@ -65,10 +62,10 @@
 			description = "SO3 kernel image including device tree";
 			kernel = "so3";
 			fdt = "fdt";
-			ramdisk = "ramfs";
+            ramdisk = "ramfs";
 		};
 
-		so3_mmc {
+        so3_mmc {
 			description = "SO3 kernel image including device tree";
 			kernel = "so3";
 			fdt = "fdt";

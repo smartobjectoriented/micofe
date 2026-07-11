@@ -79,3 +79,7 @@ filesystem/work
 /linux/usr/src/graphic/
 /linux/usr/src/lvgl/
 /filesystem/u-boot.bin
+
+# Rendered ITS + .itb output (do_render_its), regenerated each build
+linux/images/
+so3/images/
