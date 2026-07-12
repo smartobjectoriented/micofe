@@ -152,11 +152,22 @@ int main(int argc, char *argv[])
 	while (1) {
 		usleep(USECONDS / FPS);
 
-		if (ioctl(fd, FBIOPAN_DISPLAY, &vinfo) == -1) {
-			/* Fallback to force the update */
-			vinfo.activate = FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
-			if (ioctl(fd, FBIOPUT_VSCREENINFO, &vinfo) == -1) {
-				perror("Error while updating the FB");
+		/* On DRM fbdev emulation (e.g. virtio-gpu under QEMU) the
+		 * capsule pixels land in the shadow buffer through the AVZ
+		 * stage-2 remap, bypassing the agency MMU — the deferred-io
+		 * damage tracking never sees them and nothing is presented.
+		 * Rewriting the shadow through write() is an identity copy
+		 * but marks the whole framebuffer damaged, which triggers
+		 * the flush to the host. On a real scanout (e.g. rpi4) the
+		 * hardware reads the memory directly. */
+		lseek(fd, 0, SEEK_SET);
+		if (write(fd, fb_ptr, screen_size) < 0) {
+			if (ioctl(fd, FBIOPAN_DISPLAY, &vinfo) == -1) {
+				/* Fallback to force the update */
+				vinfo.activate = FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
+				if (ioctl(fd, FBIOPUT_VSCREENINFO, &vinfo) == -1) {
+					perror("Error while updating the FB");
+				}
 			}
 		}
 	}
