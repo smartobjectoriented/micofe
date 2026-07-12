@@ -89,6 +89,50 @@ The agency then performs the two-stage boot: the embedded busybox ramdisk
 mounts the full rootfs on ``/dev/vda2`` and switches into it, up to the MICOFE
 login on the serial console.
 
+Target platforms
+****************
+
+The platform is selected by ``IB_PLATFORM`` in ``build/conf/local.conf``.
+When switching platforms, purge the per-recipe work directories and stamps
+(``build/tmp/work``, ``build/tmp/stamps``) together with the in-place source
+trees (``so3/``, ``avz/``, ``linux/usr/build``) — the fetched/attached trees
+are replaced by the new platform's sources and a stale tree silently builds
+the wrong target.
+
+virt64 (QEMU)
+=============
+
+The development and validation platform. The whole stack is runtime-validated
+there: agency boot, capsule injection (``s3c-*`` tools and the EMISO REST
+API), the per-capsule VLOGS logs and the virtualized framebuffer chain. The
+agency real framebuffer requires modern virtio::
+
+   ./scripts/st.sh "-global virtio-mmio.force-legacy=false -device virtio-gpu-device"
+
+rpi4_64 (Raspberry Pi 4)
+========================
+
+Set ``IB_PLATFORM ?= "rpi4_64"`` and build as usual — the full chain compiles
+up to the two AVZ boot images (``rpi4_64_avz.itb`` and
+``rpi4_64_linux_guest.itb`` under ``linux/images/``): the SO3 capsule, AVZ
+(``rpi4_64_avz_soo_defconfig``), the Raspberry Pi kernel with the SOO agency
+patch set (including the vfbdev/vinput backends), the ``bcm2711-rpi-4-b.dtb``
+and the buildroot root file system. The AVZ guest ITS load addresses follow
+the rpi4 memory map (kernel ``0x10000000``, FDT ``0x15000000``, initrd
+``0x15c00000``; AVZ at ``0x00080000``).
+
+.. note::
+
+	The rpi4_64 environment is **build-validated only** — it has not been
+	booted on a board yet. Flashing, the U-Boot/`guest-boot` bring-up and
+	the framebuffer test on the real scanout are the next step.
+
+.. note::
+
+	The user-space test module for rpi4_64 is the generic ``modtry``; the
+	Sense-HAT ``senseled`` module requires the ``VSENSELED``/``VSENSEJ``
+	kernel backends, which have never been enabled in the rpi4 defconfig.
+
 Capsule lifecycle
 *****************
 
