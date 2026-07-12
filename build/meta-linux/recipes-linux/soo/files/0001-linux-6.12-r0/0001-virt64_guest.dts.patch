@@ -19,7 +19,7 @@
  	};
  
  	timer {
-@@ -403,4 +404,36 @@
+@@ -403,4 +404,46 @@
  		compatible = "fixed-clock";
  	};
  
@@ -35,6 +35,16 @@
 +	
 +			vuart {
 +				compatible = "vuart,backend";
++				status = "ok";
++			};
++
++			vfbdev {
++				compatible = "vfbdev,backend";
++				status = "ok";
++			};
++
++			vinput {
++				compatible = "vinput,backend";
 +				status = "ok";
 +			};
 +			
