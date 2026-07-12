@@ -26,7 +26,7 @@ IB_TARGET = "${IB_SO3_PATH}"
 # SRCREV; IB_SO3_TAG records the human-readable tag it corresponds to.
 IB_SO3_TAG = "v6.2.1-rc"
 SRC_URI = "git://github.com/smartobjectoriented/so3.git;nobranch=1;protocol=https"
-SRCREV = "ed2b17916eaa06259c6df7b373c4700628cc3bbc"
+SRCREV = "bef05d985a438d31085d8f14f4cdc5a49f16b7d7"
 
 # MICOFE-specific SO3 patches applied on top of the fetched tree.
 # Generate/refresh the set with `bitbake so3 -c updiff` (do_diffcompose
