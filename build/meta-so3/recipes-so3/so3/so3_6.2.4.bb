@@ -9,7 +9,7 @@ inherit so3
 
 # Version and revision
 PR = "r0"
-PV = "6.2.0"
+PV = "6.2.4"
 
 # :append (not +=) so no space is inserted before ":so3" — otherwise the
 # preceding CPU token parses as "arm "/"aarch64 " and :<cpu> overrides
@@ -24,9 +24,9 @@ IB_TARGET = "${IB_SO3_PATH}"
 # in place). Pinned to the SO3 release tag IB_SO3_TAG (see below;
 # the bitbake git fetcher takes the tag's commit as
 # SRCREV; IB_SO3_TAG records the human-readable tag it corresponds to.
-IB_SO3_TAG = "v6.2.1-rc"
+IB_SO3_TAG = "v6.2.4"
 SRC_URI = "git://github.com/smartobjectoriented/so3.git;nobranch=1;protocol=https"
-SRCREV = "bef05d985a438d31085d8f14f4cdc5a49f16b7d7"
+SRCREV = "2e9555f0e1bbc0df0bb902601885dbde5bcfb04c"
 
 # MICOFE-specific SO3 patches applied on top of the fetched tree.
 # Generate/refresh the set with `bitbake so3 -c updiff` (do_diffcompose

@@ -7,4 +7,5 @@
 
 SRC_URI += " \
     file://0001-virt64_capsule.dts.patch \
+    file://0002-version.h.patch \
     "
