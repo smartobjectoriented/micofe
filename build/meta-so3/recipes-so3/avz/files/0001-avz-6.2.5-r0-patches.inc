@@ -5,6 +5,3 @@
 # Empty until the first updiff: a clean SO3 (SRCREV) is fetched and no
 # patch is applied. Add MICOFE deltas to ${IB_TARGET}, then run updiff.
 
-SRC_URI += " \
-    file://0001-version.h.patch \
-    "
