@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2020 Daniel Rossier <daniel.rossier@soo.tech>
+ * Copyright (C) 2014-2020 Daniel Rossier <daniel.rossier@heig-vd.ch>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -48,6 +48,14 @@ int main(int argc, char *argv[]) {
 	agency_ioctl_args.slotID = atoi(argv[1]) + 1;
 
 	ioctl(fd_core, AGENCY_IOCTL_SHUTDOWN, &agency_ioctl_args);
+
+	if (agency_ioctl_args.value != 0) {
+		printf("failed.\n");
+		printf("## No S3C capsule in this slot.\n");
+
+		close(fd_core);
+		return -1;
+	}
 
 	printf("done.\n");
 

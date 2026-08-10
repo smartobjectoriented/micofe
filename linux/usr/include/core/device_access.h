@@ -1,5 +1,5 @@
  /* 
- * Copyright (C) 2014-2019 Daniel Rossier <daniel.rossier@soo.tech>
+ * Copyright (C) 2014-2019 Daniel Rossier <daniel.rossier@heig-vd.ch>
  * Copyright (c) 2018 Baptiste Delporte <bonel@bonel.net>
  * Copyright (C) 2019 David Truan <david.truan@heig-vd.ch>
  *

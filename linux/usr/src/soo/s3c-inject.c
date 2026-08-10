@@ -116,6 +116,12 @@ int main(int argc, char *argv[]) {
 	args.value = S3C_size;
 	args.slotID = -1; /* Wherever */
 
+	/* No specific capsule identity from the CLI injector (EMISO/MICOFE
+	 * assign real capsule IDs); the field must still be initialized as
+	 * the kernel forwards it verbatim to the AVZ injection hypercall. */
+
+	args.capsuleID = 0;
+
 	if ((ret = ioctl(fd_core, AGENCY_IOCTL_INJECT_CAPSULE, &args)) < 0) {
 		printf("Failed to inject S3C (%d)\n", ret);
 		exit(EXIT_FAILURE);
@@ -136,4 +142,3 @@ int main(int argc, char *argv[]) {
 
 	return 0;
 }
-

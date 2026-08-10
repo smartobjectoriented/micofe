@@ -54,6 +54,13 @@ int main(int argc, char *argv[]) {
         ret = ioctl(fd_core, AGENCY_IOCTL_READ_SNAPSHOT, &args);
         assert(ret == 0);
 
+	if (args.value == 0) {
+		printf("## No S3C capsule in this slot, nothing to save.\n");
+
+		close(fd_core);
+		return -1;
+	}
+
 	/* The use of %zu formatter enables to print a size_t variable regardless the underlying architecture. */
         printf("  * Size of the snapshot: %zu bytes.\n", args.value);
         
