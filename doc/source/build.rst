@@ -4,7 +4,7 @@ Build system
 ############
 
 MICOFE is built with the **Infrabase** build system (bitbake based), aligned on
-the SO3 release the framework is pinned to (currently the ``v6.2.1-rc`` tag).
+the SO3 release the framework is pinned to (currently the ``v6.2.4`` tag).
 The build tree follows the SO3 reference model: shared recipes and scripts are
 kept identical to SO3, and only genuine MICOFE additions (the framebuffer/input
 forwarding, the EMISO engine, the agency applications) diverge.
@@ -22,7 +22,11 @@ The components fall into two categories:
   ``qemu/``) are build products and are not committed.
 
 * **In-tree** components: the Linux agency kernel patches live in
-  ``build/meta-linux``, and the MICOFE user space applications are committed
+  ``build/meta-linux`` — the SOO agency set follows the SO3 ``soo-generic``
+  model (one generic patch directory shared by every agency kernel, plus a
+  per-kernel directory whose same-named patches shadow the generic ones);
+  the MICOFE vfbdev/vinput backends and their wiring are carried directly
+  in MICOFE's copy of the generic set — and the MICOFE user space applications are committed
   under ``linux/usr`` (``src/soo`` holds the capsule management applications,
   the framebuffer/input forwarders and the EMISO engine). They are built in
   place — no patch materialization.
@@ -38,6 +42,11 @@ The entry point is ``scripts/build.sh`` with a positional recipe name::
    ./scripts/build.sh -l              # list the available recipes
    ./scripts/build.sh -c bsp-linux    # clean, then rebuild
 
+For a fast edit/build loop on the user-space applications,
+``scripts/makeusr.sh`` (run from ``linux/usr``) does a direct cmake+make —
+including the out-of-tree kernel modules — without driving bitbake;
+``deploy.sh usr-linux`` then pushes the result onto the media.
+
 bitbake runs unprivileged; the few privileged operations (losetup, mkfs,
 rootfs extraction) go through ``sudo -n``. Run
 ``scripts/common/setup_sudo.sh`` once so the sudo timestamp is shared with the
@@ -46,6 +55,27 @@ build (it installs a sudoers drop-in enabling global timestamps).
 Building ``bsp-linux`` bakes the agency applications **into**
 ``rootfs.cpio``: the user space is compiled, then injected into the rootfs
 archive as a build step. Deploying never rebuilds nor modifies that archive.
+
+Containerized build (dbuild.sh)
+===============================
+
+The whole build environment (cross toolchains — including the bare-metal
+``aarch64-none-elf`` AVZ/SO3 toolchain that is so easy to miss on a
+hand-provisioned host — host packages, Python) is available as a Docker
+image, defined under ``docker/build-env`` and driven by
+``scripts/dbuild.sh``::
+
+   ./scripts/dbuild.sh --build            # build the micofe-build:1.0 image (once)
+   ./scripts/dbuild.sh build.sh bsp-linux # run any front-end script inside
+   ./scripts/dbuild.sh                    # interactive shell, env.sh sourced
+   ./scripts/dbuild.sh st.sh -d           # graphical QEMU from the container
+
+The image carries only the environment: the repository stays on the host
+and is bind-mounted **at its own absolute path**, so bitbake stamps, the
+buildroot host tree and the CMake caches remain valid and a tree can be
+built from inside or outside the container interchangeably. The container
+runs as the calling host user (UID/GID mapped at run time) and carries a
+blanket sudo rule, so the privileged storage steps never prompt.
 
 Image assembly (ITS render)
 ===========================
@@ -104,8 +134,9 @@ virt64 (QEMU)
 
 The development and validation platform. The whole stack is runtime-validated
 there: agency boot, capsule injection (``s3c-*`` tools and the EMISO REST
-API), the per-capsule VLOGS logs and the virtualized framebuffer chain. The
-agency real framebuffer requires modern virtio::
+API), the per-capsule VLOGS logs and the virtualized framebuffer chain. ``st.sh -d``
+opens the QEMU GTK window showing the SO3/PL111 screen; the agency real
+framebuffer additionally requires modern virtio::
 
    ./scripts/st.sh "-global virtio-mmio.force-legacy=false -device virtio-gpu-device"
 
