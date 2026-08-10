@@ -1,4 +1,5 @@
 #!/bin/sh
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 # One-time host setup: configure sudo so that privileged operations
 # invoked from bitbake recipes (via `sudo -n`) share the credential
@@ -18,7 +19,6 @@
 #   scripts/common/setup_sudo.sh --check   (check only, no changes)
 
 # Copyright (c) 2025-2026 EDGEMTech SA
-# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 set -e
 

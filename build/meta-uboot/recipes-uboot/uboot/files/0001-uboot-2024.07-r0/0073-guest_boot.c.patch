@@ -1,10 +1,10 @@
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 --- /dev/null
 +++ b/cmd/guest_boot.c
 @@ -0,0 +1,212 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2026 EDGEMTech SA <info@edgemtech.ch>
-# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 + *
 + * guest-boot: load an AVZ FIT image and an guest FIT image individually,
 + * place each declared loadable/kernel/fdt/ramdisk at its declared load address,

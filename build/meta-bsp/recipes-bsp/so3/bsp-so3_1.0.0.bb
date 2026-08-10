@@ -13,7 +13,6 @@ PR = "r0"
 
 inherit filesystem
 inherit uboot
-inherit logging
 inherit bsp
 
 # ITS templates live in the layer (rendered into IB_ITB_PATH by do_itb)

@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 #
 
+inherit logging
 inherit patch
 inherit utils
 

@@ -1,5 +1,4 @@
 # Copyright (c) 2025-2026 EDGEMTech SA
-# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SRC_URI += "\ 
     file://0012-bcm283x-rpi-i2c0mux_0_44.dtsi.patch \ 

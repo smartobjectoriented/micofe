@@ -84,7 +84,7 @@ do_build:prepend () {
 
 do_install_apps () {
 
-    usr_do_install_file_root "${IB_TARGET}/build/src/applications/examples/hello"
+    usr_do_install_file_root "${IB_TARGET}/build/src/examples/hello"
     usr_do_install_file_root "${IB_TARGET}/build/bin/capsule-flash-test"
     usr_do_install_file_root "${IB_TARGET}/build/bin/capsule-http-test"
 

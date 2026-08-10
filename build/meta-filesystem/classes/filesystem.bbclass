@@ -1,3 +1,4 @@
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 ###################################################################
 #
 #   The filesystem creation class
@@ -17,7 +18,6 @@
 #
 #   Copyright (c) 2014-2026 REDS Institute, HEIG-VD
 #   Copyright (c) 2023-2026 EDGEMTech Ltd
-# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 #
 #   Authors:
 #       EDGEMTech Ltd, Daniel Rossier (daniel.rossier@edgemtech.ch)
@@ -25,7 +25,6 @@
 #
 ###################################################################
 
-inherit logging
 inherit utils
 inherit fs_${IB_PLATFORM}
 

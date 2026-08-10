@@ -1,6 +1,6 @@
 # Copyright (C) 2006  OpenedHand LTD
-# Copyright (C) 2023-2026 EDGEMTech Ltd
 # Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
+# Copyright (C) 2023-2026 EDGEMTech Ltd
 #
 # SPDX-License-Identifier: MIT
 
@@ -403,7 +403,6 @@ def generate_src_uri(patch_directory):
                      if p.endswith(".patch"))
     # Standard header so repeated updiff runs don't churn it out of the .inc.
     src_uri = "# Copyright (c) 2025-2026 EDGEMTech SA\n\n"
-# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
     src_uri += "SRC_URI += \"\\ \n"
     for patch in patches:
         src_uri += "    file://" + patch + " \\ \n"

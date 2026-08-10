@@ -2,7 +2,6 @@
 # Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 inherit filesystem
-inherit logging
 inherit rootfs
 
 # Class for managing the user space environment
