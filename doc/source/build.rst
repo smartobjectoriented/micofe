@@ -4,7 +4,7 @@ Build system
 ############
 
 MICOFE is built with the **Infrabase** build system (bitbake based), aligned on
-the SO3 release the framework is pinned to (currently the ``v6.2.5`` tag).
+the SO3 release the framework is pinned to (currently the ``v6.3.0`` tag).
 The build tree follows the SO3 reference model: shared recipes and scripts are
 kept identical to SO3, and only genuine MICOFE additions (the framebuffer/input
 forwarding, the EMISO engine, the agency applications) diverge.
