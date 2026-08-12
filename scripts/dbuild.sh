@@ -122,7 +122,7 @@ set -- -e IB_TREE="$IB_ROOT" -e IB_CWD="$cwd" "$@"
 # Hardware deployment: make any IB_HTTP_DEPLOY_PATH feed directory
 # visible at its own path so `deploy.sh` can publish into it from inside
 # (IB_STORAGE_MODE=http). The MICOFE platforms use soft/hard storage, so
-# this is normally a no-op — kept in step with the edgem1 tree.
+# this is a no-op here — kept in step with the sibling trees.
 # IB_STORAGE_MODE=hard needs no extra wiring: /dev is already
 # bind-mounted and the container is privileged (it writes the HOST's
 # device, so double-check IB_STORAGE_DEVICE).
@@ -201,10 +201,9 @@ fi
 # resource, so concurrent builds on one machine contend for them exactly
 # as they do outside a container.
 #
-# --network host: keeps st.sh's slirp port forwards (guest ssh on 2222),
-# the GDB stub and reachable from the host
-# without publishing ports, and lets the recipes fetch through the host
-# resolver.
+# --network host: keeps st.sh's slirp port forwards (guest ssh on 2222)
+# and the GDB stub reachable from the host without publishing ports, and
+# lets the recipes fetch through the host resolver.
 
 set -- --rm \
 	--privileged \
