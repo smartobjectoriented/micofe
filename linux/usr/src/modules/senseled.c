@@ -45,11 +45,9 @@ static int senseled_probe(struct platform_device *pdev) {
 
 }
 
-static int senseled_remove(struct platform_device *pdev) {
+static void senseled_remove(struct platform_device *pdev) {
 
 	printk("%s: releasing all...\n", __func__);
-
-	return 0;
 }
 
 static const struct of_device_id senseled_of_ids[] = {

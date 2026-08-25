@@ -1,0 +1,31 @@
+--- a/so3/dts/virt64_capsule.dts
++++ b/so3/dts/virt64_capsule.dts
+@@ -129,21 +129,19 @@
+ 				status = "ok";
+ 			};
+ 
+-			/* Framebuffer support: disabled — the Linux agency built from
+-			 * this repo provides no vfbdev backend (vuart/vlogs only), and
+-			 * the capsule BUG()s at vbstore init when the backend node is
+-			 * missing. Re-enable when an agency with the virtual
+-			 * framebuffer backend is used. */
++			/* Framebuffer support: enabled — the MICOFE Linux agency
++			 * provides the vfbdev backend (virtualized framebuffer via
++			 * the 2-stage MMU IPA remap, fb_mapper user space). */
+ 			vfbdev {
+ 				compatible = "vfbdev,frontend";
+-				status = "disabled";
++				status = "ok";
+ 			};
+ 
+-			/* Input support: disabled — no vinput backend in the agency
+-			 * (see vfbdev above). */
++			/* Input support: enabled — the MICOFE agency provides the
++			 * vinput backend (input_forwarding user space). */
+ 			vinput {
+ 				compatible = "vinput,frontend";
+-				status = "disabled";
++				status = "ok";
+ 			};
+ 		};
+ 	};

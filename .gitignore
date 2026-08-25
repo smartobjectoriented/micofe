@@ -16,6 +16,14 @@ build/bitbake
 build/bitbake.lock
 build/cache
 
+# Per-machine bitbake overrides, included by build/meta/conf/bitbake.conf
+/build/conf/site.conf
+
+# TEZI HTTP feed published by deploy.sh, plus the feed server's pid/log.
+# Deliberately outside build/tmp so a clean does not wipe a feed a board
+# may be installing from.
+/build/deploy/
+
 **/doxy/**
 **/generated/**
 **/rootfs/build/**
@@ -70,3 +78,16 @@ filesystem/work
 # GitHub Actions workflows
 !.github
 !.github/**
+
+# do_attach_infrabase manifests (build artifacts)
+*.attach.sha256
+*.back/
+
+# --- Build-generated / attached at build time (materialized from patch sets / fetch) ---
+/linux/usr/src/graphic/
+/linux/usr/src/lvgl/
+/filesystem/u-boot.bin
+
+# Rendered ITS + .itb output (do_render_its), regenerated each build
+linux/images/
+so3/images/

@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "QEMU EMulator"
 DESCRIPTION = "QEMU emulation environment core receipt"
@@ -22,8 +24,27 @@ require files/0001-${PF}-patches.inc
 # Where the working directory will be placed in infrabase root dir
 IB_TARGET = "${IB_DIR}/qemu"
 
-QEMU_CONFIGURE:virt32 = "--target-list=arm-softmmu --disable-attr --disable-werror --disable-docs"
-QEMU_CONFIGURE:virt64 = "--target-list=aarch64-softmmu --disable-attr --disable-werror --disable-docs --enable-sdl"
+# Keep generated/fetched trees out of the updiff patchset so only hand-edited
+# sources (hw/arm/virt.c, include/hw/arm/virt.h, ...) are diffed against the
+# pristine snapshot:
+#   build/        — QEMU's out-of-tree meson/ninja dir (1000+ generated files)
+#   subprojects/  — meson subprojects (dtc, libslirp, ...) cloned during
+#                   do_configure, i.e. AFTER the pristine snapshot is taken, so
+#                   they'd otherwise show up as hundreds of "added" files.
+#   GNUmakefile   — meson-generated top-level ninja wrapper (qemu ships a
+#                   Makefile + meson.build; this file is created at configure).
+# All three are produced AFTER do_unpack snapshots the pristine tree, so they
+# read as "added" in the diff; none are ever hand-edited.
+
+IB_UPDIFF_EXCLUDE = "build subprojects GNUmakefile"
+
+# Softmmu target per platform (resolved via IB_PLATFORM/OVERRIDES). The
+# bbclass builds this target and keeps any other arch already built, so
+# building one platform's qemu doesn't wipe the other's.
+
+QEMU_TARGET:virt32 = "arm-softmmu"
+QEMU_TARGET:virt64 = "aarch64-softmmu"
+QEMU_OPTS = "--enable-slirp --disable-attr --disable-werror --disable-docs --enable-sdl"
 
 do_clean[nostamp] = "1"
 do_clean () {

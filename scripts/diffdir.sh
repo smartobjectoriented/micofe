@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
+
 source_dir=$1
 target_dir=$2
 output_dir=$3

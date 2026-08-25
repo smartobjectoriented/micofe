@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "SO3 root filesystem"
 DESCRIPTION = "SO3 root filesystem contents to be deployed on the target platform"
@@ -9,7 +11,10 @@ inherit rootfs
 PR = "r0"
 PV = "1.0"
 
-OVERRIDES += ":so3"
+# :append (not +=) so no space is inserted before ":so3" — otherwise the
+# preceding CPU token parses as "arm "/"aarch64 " and :<cpu> overrides
+# stop matching. See usr-so3_1.0.bb for the full rationale.
+OVERRIDES:append = ":so3"
 
 IB_TARGET = "${IB_DIR}/so3/rootfs"
 

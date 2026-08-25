@@ -1,7 +1,8 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 # Class of Linux layer
 
-inherit logging
 
 IB_LINUX_PATH = "${IB_DIR}/linux/linux"
 

@@ -1,3 +1,5 @@
+# Copyright (c) 2025-2026 EDGEMTech SA
+# Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
 SUMMARY = "SO3 capsule Deployment"
 DESCRIPTION = "SO3 capsules are aimed to run with Linux as guest on top of the AVZ hypervisor."
@@ -10,10 +12,15 @@ PR = "r0"
 
 inherit filesystem
 inherit uboot
-inherit logging
 inherit bsp
 
-OVERRIDES += ":so3"
+# Capsules reuse the SO3 ITS templates (e.g. <plat>_capsule.its)
+IB_ITS_SRC = "${THISDIR}/../so3/files/its"
+
+# :append (not +=) so no space is inserted before ":so3" — otherwise the
+# preceding CPU token parses as "arm "/"aarch64 " and :<cpu> overrides
+# stop matching. See usr-so3_1.0.bb for the full rationale.
+OVERRIDES:append = ":so3"
 
 do_configure[noexec] = "1"
 do_attach_infrabase[noexec] = "1"
@@ -32,26 +39,27 @@ addtask do_build
 def __do_platform_deploy(d):
 
     import os
-    import subprocess   
 
     capsule_path = d.getVar('IB_FILESYSTEM_PATH') + "/p2/mnt/capsules/image"
     itb_path = d.getVar('IB_ITB_PATH') + "/" + d.getVar('IB_TARGET_ITS') + ".itb"
 
     if not os.path.isfile(itb_path):
         bb.fatal(itb_path + " is missing ...")
- 
-    subprocess.run(['mkdir', '-p', capsule_path])
-    subprocess.run(['cp', itb_path, capsule_path])
+
+    # The p2 rootfs is extracted as root, so any write into it must be
+    # escalated (bitbake itself runs unprivileged) and must fail loudly.
+    utils_sudo(['mkdir', '-p', capsule_path], check=True)
+    utils_sudo(['cp', itb_path, capsule_path], check=True)
 
 do_itb[nostamp] = "1"
 do_itb[depends] = "usr-so3:do_deploy"
 do_itb () {
 
+	# ITS rendered into IB_ITB_PATH by the shared do_render_its (before do_itb).
 	if [ ! -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ]; then
 		bbfatal "No corresponding ITS found for container ${IB_TARGET_ITS}"
-	else
-		mkimage -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ${IB_ITB_PATH}/${IB_TARGET_ITS}.itb
 	fi
+	mkimage -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ${IB_ITB_PATH}/${IB_TARGET_ITS}.itb
 	
 }
 
