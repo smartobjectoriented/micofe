@@ -87,6 +87,11 @@ typedef struct {
 #define AGENCY_IOCTL_GET_S3C_ID			_IOWR('S', 6, agency_ioctl_args_t)
 #define AGENCY_IOCTL_GET_S3C_ID_ARRAY		_IOR('S', 7, agency_ioctl_args_t)
 
+/* Same as AGENCY_IOCTL_READ_SNAPSHOT, but the capsule is left suspended instead
+ * of being resumed: for a caller which shuts it down right after.
+ */
+#define AGENCY_IOCTL_READ_SNAPSHOT_HOLD		_IOWR('S', 8, agency_ioctl_args_t)
+
 /* struct agency_ioctl_args used in IOCTLs */
 typedef struct agency_ioctl_args {
 	void	*buffer; /* IN/OUT */

@@ -38,6 +38,16 @@ using namespace std;
 namespace emiso {
 namespace container {
 
+    /*
+     * Read a boolean query argument the way the Docker API does: everything
+     * which is not empty, "0" or "false" means true -- clients send "1" as
+     * readily as "true", Portainer among them.
+     */
+    static bool boolArg(const string &value)
+    {
+        return !(value.empty() || (value == "0") || (value == "false") || (value == "False"));
+    }
+
     class ListHandler : public httpserver::http_resource {
     public:
         ListHandler(Daemon *daemon) : _daemon(daemon) {};
@@ -56,7 +66,7 @@ namespace container {
 
             for (const auto &arg : req.get_args()) {
                     if (string(arg.first) == "all") {
-                            allArg = (string(arg.second) == "true");
+                            allArg = boolArg(string(arg.second));
                     }
                     if (arg.first == "filters") {
                             filtersArg = arg.second;
@@ -87,9 +97,11 @@ namespace container {
 
             _daemon->container.info(info);
 
-            if (info.empty()) {
-                payload_json = Json::arrayValue;
-            } else {
+            /* Whatever is filtered out below, the answer stays a list. */
+
+            payload_json = Json::arrayValue;
+
+            {
                 unsigned idx = 0;
                 for (auto it = info.begin(); it != info.end(); ++it) {
 
@@ -214,7 +226,20 @@ namespace container {
 
             cout << LOG_PREFIX "Create container '" << containerName << "' based on '" << imageName << "' name" << endl;
 
-            unsigned id = _daemon->container.create(imageName, containerName);
+            int id = _daemon->container.create(imageName, containerName);
+            if (id < 0) {
+                cerr << LOG_PREFIX "Failed to create container '" << containerName << "' from image '"
+                     << imageName << "'" << endl;
+
+                payload_json["message"] = "No such image: " + imageName;
+
+                Json::StreamWriterBuilder errBuilder;
+                payload_str = Json::writeString(errBuilder, payload_json);
+
+                return make_shared<httpserver::string_response>(payload_str,
+                           httpserver::http::http_utils::http_not_found, "application/json");
+            }
+
             cout << "    Container ID: " << id << endl;
 
             // build the response
@@ -261,7 +286,17 @@ namespace container {
             // == Retrieve container ID from the request path ==
             //int containerId =  __cxx11::stoi(req.get_arg("id"));
 
-            _daemon->container.start(containerId);
+            if (_daemon->container.start(containerId) < 0) {
+                cerr << LOG_PREFIX "Failed to start container '" << containerId << "'" << endl;
+
+                payload_json["message"] = "Failed to start container " + std::to_string(containerId);
+
+                Json::StreamWriterBuilder errBuilder;
+                payload_str = Json::writeString(errBuilder, payload_json);
+
+                return make_shared<httpserver::string_response>(payload_str,
+                           httpserver::http::http_utils::http_internal_server_error, "application/json");
+            }
 
             auto response = make_shared<httpserver::string_response>(payload_str,
                        httpserver::http::http_utils::http_no_content, "application/json");

@@ -93,7 +93,8 @@ int Capsule::inject(string imageName, bool start_capsule, unsigned capsuleId)
     ifstream image(filename, ios::in | ios::binary | ios::ate);
     if (!image.is_open()) {
         cerr << LOG_PREFIX "Error: Failed to open image file '" << filename << "'" << endl;
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     capsuleSize = image.tellg();
@@ -113,7 +114,8 @@ int Capsule::inject(string imageName, bool start_capsule, unsigned capsuleId)
     if (fd < 0) {
         cerr << "[EMISO:DAEMON] Failing to open /dev soo entry ..." << endl;
         delete[] capsuleBuf;
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     /* Inject the capsule */
@@ -122,7 +124,8 @@ int Capsule::inject(string imageName, bool start_capsule, unsigned capsuleId)
         cerr << "[EMISO:DAEMON] No available ME slot further..." << endl;
         close(fd);
         delete[] capsuleBuf;
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     if (start_capsule) {
@@ -156,33 +159,51 @@ int Capsule::saveSnapshot(int slotId, string snapshotName)
     fd = open(SOO_CORE_DRV_PATH, O_RDWR);
     if (fd < 0) {
         printf("[EMISO:DAEMON] Failing to open /dev/soo entry ...\n");
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     /* Get the size of the snapshot */
     args.slotID = slotId;
     args.value = 0; /* To get the size of the snapshot */
 
-    ret = ioctl(fd, AGENCY_IOCTL_READ_SNAPSHOT, &args);
-    if (ret < 0) {
+    /* The HOLD flavour leaves the capsule suspended instead of resuming it: a
+     * snapshot is only ever saved to pause the capsule, which is shut down
+     * right after. Resuming it in between would let it run, and diverge from
+     * the snapshot just taken, for nothing.
+     *
+     * What such a capsule cannot release itself is released for it: the agency
+     * tears down its backends in shutdown_capsule(), and AVZ frees the grants
+     * it still holds when the domain is destroyed.
+     */
+
+    ret = ioctl(fd, AGENCY_IOCTL_READ_SNAPSHOT_HOLD, &args);
+    if ((ret < 0) || (args.value == 0)) {
         printf(LOG_PREFIX "Get the size with IOCTL_READ_SNAPSHOT failed.\n");
         close(fd);
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     args.buffer = new (std::nothrow) char[args.value];
     if (args.buffer == NULL) {
         printf(LOG_PREFIX " %s - malloc failed\n", __func__);
         close(fd);
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
-    ret = ioctl(fd, AGENCY_IOCTL_READ_SNAPSHOT, &args);
+    /* A snapshot which could not be read entirely must not be stored: the
+     * kernel reports that with a failing ioctl.
+     */
+
+    ret = ioctl(fd, AGENCY_IOCTL_READ_SNAPSHOT_HOLD, &args);
     if (ret < 0) {
         printf(LOG_PREFIX "Read the snapshot IOCTL_READ_SNAPSHOT failed.\n");
-        delete[] args.buffer;
+        delete[] (char *) args.buffer;
         close(fd);
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     close(fd);
@@ -229,7 +250,8 @@ int Capsule::restoreSnapshot(string snapshotName)
     fd = open(SOO_CORE_DRV_PATH, O_RDWR);
     if ((fd < 0)) {
         printf(LOG_PREFIX "Failed to open soo /dev entry...\n");
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     filename = std::string(EMISO_CAPSULE_CACHE_DIR) + "/" + snapshotName;
@@ -238,11 +260,36 @@ int Capsule::restoreSnapshot(string snapshotName)
     if (!zip) {
         printf(LOG_PREFIX "Failed to open the zip file. Is there a bad sync after saving the snapshot?...\n");
         close(fd);
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
-    zip_entry_open(zip, "me");
-    zip_entry_read(zip, &args.buffer, &buffer_size);
+    /* The buffer is allocated by zip_entry_read(). It has to be initialized
+     * beforehand: should the entry be missing or unreadable, an uninitialized
+     * pointer would end up in the ioctl and the kernel would read a bogus
+     * snapshot size out of it.
+     */
+
+    args.buffer = nullptr;
+    buffer_size = 0;
+
+    if (zip_entry_open(zip, "me") < 0) {
+        printf(LOG_PREFIX "No 'me' entry in snapshot '%s'...\n", snapshotName.c_str());
+        zip_close(zip);
+        close(fd);
+
+        return -1;
+    }
+
+    if ((zip_entry_read(zip, &args.buffer, &buffer_size) < 0) || (args.buffer == nullptr)) {
+        printf(LOG_PREFIX "Failed to read the 'me' entry of snapshot '%s'...\n", snapshotName.c_str());
+        zip_entry_close(zip);
+        zip_close(zip);
+        close(fd);
+
+        return -1;
+    }
+
     zip_entry_close(zip);
 
     zip_close(zip);
@@ -251,10 +298,14 @@ int Capsule::restoreSnapshot(string snapshotName)
     cout << LOG_PREFIX "Re-implementing snapshot of size " << buffer_size << " bytes." << endl;
     args.slotID = -1;
     ret = ioctl(fd, AGENCY_IOCTL_WRITE_SNAPSHOT, &args);
+
+    free(args.buffer);
+
     if (ret < 0) {
         printf("Failed to initialize migration (%d)\n", ret);
         close(fd);
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     close(fd);
@@ -277,7 +328,8 @@ int Capsule::shutdown(int slotId)
     fd = open(SOO_CORE_DRV_PATH, O_RDWR);
     if (fd < 0) {
         printf("[EMISO:DAEMON] Failing to open /dev/soo entry ...\n");
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     /* Shutdown the capsule so that it will be removed from the memory */
@@ -285,9 +337,10 @@ int Capsule::shutdown(int slotId)
 
     ret = ioctl(fd, AGENCY_IOCTL_SHUTDOWN, &args);
     if (ret < 0) {
-        printf(LOG_PREFIX "Read the snapshot IOCTL_READ_SNAPSHOT failed.\n");
+        printf(LOG_PREFIX "IOCTL_SHUTDOWN failed for slot %d.\n", slotId);
         close(fd);
-        return EXIT_FAILURE;
+
+        return -1;
     }
 
     close(fd);
@@ -319,22 +372,40 @@ void Capsule::info(int id, CapsuleInfo &info)
 
 
 /**
- * @brief  The create() method of Capsule leads to the injection of a capsule, but
- *         without starting its execution. It will perform a snapshot, write it to
- *         a specific location and shutdown the stopped capsule.
+ * @brief  Creating a capsule only registers it: nothing is injected yet.
+ *
+ *         A capsule which has never been scheduled has no CPU context to take a
+ *         snapshot of: AVZ fills the vcpu of a domain (VBAR_EL1, SCTLR_EL1, the
+ *         translation table registers) when it schedules it out, so the snapshot
+ *         of a freshly injected capsule carries zeros there. Restoring it gives
+ *         a domain with no vector table and no MMU setup, which faults on its
+ *         first exception. Hence a created capsule is injected when it is
+ *         started, exactly like an exited one.
  *
  * @param imageName   Name image, without .itb suffix, used to create the capsule
  * @param capsuleName The name of the capsule to create
- * @return The ID of the create capsule
+ * @return The ID of the created capsule, or a negative value in case of error
  */
 int Capsule::create(string imageName, string capsuleName)
 {
-    int slotId;
+    string filename;
 
     cout << LOG_PREFIX "Create capsule " << capsuleName << " from image " << imageName << endl;
 
-    // Inject the Capsule
-    slotId = this->inject(imageName, false, _capsuleIdx);
+    /* The image is not read here, but no capsule may be registered for an image
+     * which does not exist.
+     */
+
+    filename = std::format("{}{}.itb", EMISO_IMAGE_PATH, imageName);
+
+    ifstream image(filename, ios::in | ios::binary);
+    if (!image.is_open()) {
+        cerr << LOG_PREFIX "Error: Failed to open image file '" << filename << "'" << endl;
+
+        return -1;
+    }
+
+    image.close();
 
     // Save the info of the new capsule
     CapsuleInfo capsule;
@@ -342,20 +413,11 @@ int Capsule::create(string imageName, string capsuleName)
     capsule.name    = capsuleName;
     capsule.state   = "created";
     capsule.image   = imageName;
-    capsule.slotId  = slotId;
+    capsule.slotId  = -1; /* No slot is held until the capsule is started */
     capsule.created = this->createdTime();
 
     _capsules[_capsuleIdx] = capsule;
     _capsuleIdx++;
-
-    // Save the snapshot to the capsule cache directory and shutdown it
-    this->saveSnapshot(slotId, capsuleName);
-
-    // Shutdown the capsule
-    this->shutdown(slotId);
-
-    // Set the Capsule state
-    _capsules[capsule.id].state = "created";
 
     return capsule.id;
 }
@@ -363,24 +425,21 @@ int Capsule::create(string imageName, string capsuleName)
 /**
  * @brief Start an existing capsule
  *
- *  Depending in the state of the capsule, it is restored or injected
+ *  A capsule which has never run -- created or exited -- is (re)injected from
+ *  its image. Resuming a paused capsule goes through unpause(), which restores
+ *  its snapshot.
  *
- * @param capsuleName
  * @param capsuleId
- * @return
+ * @return The slot ID the capsule runs in, or a negative value in case of error
  */
 int Capsule::start(unsigned capsuleId)
 {
-    int ret;
     string capsuleName = _capsules[capsuleId].name;
     int slotId;
 
     cout << LOG_PREFIX "Start capsule " << capsuleName << endl;
 
-    if (_capsules[capsuleId].state == "created") {
-        slotId = this->restoreSnapshot(capsuleName);
-
-    } else if (_capsules[capsuleId].state == "exited") {
+    if ((_capsules[capsuleId].state == "created") || (_capsules[capsuleId].state == "exited")) {
         slotId = this->inject(_capsules[capsuleId].image, true, capsuleId);
 
     } else {
@@ -389,10 +448,16 @@ int Capsule::start(unsigned capsuleId)
         return -1;
     }
 
+    if (slotId < 0) {
+        cerr << LOG_PREFIX "Capsule start failed for " << capsuleName << endl;
+
+        return -1;
+    }
+
     _capsules[capsuleId].state  = "running";
     _capsules[capsuleId].slotId = slotId;
 
-    return ret;
+    return slotId;
 }
 
 
@@ -456,13 +521,24 @@ int Capsule::pause(unsigned capsuleId)
 
     cout << LOG_PREFIX "Pause capsule with ID " << capsuleId << endl;
 
-    this->saveSnapshot(_capsules[capsuleId].slotId, _capsules[capsuleId].name);
+    /* The capsule keeps running if its snapshot could not be taken: shutting it
+     * down here would lose it for good.
+     */
 
-    this->shutdown(_capsules[capsuleId].slotId);
+    ret = this->saveSnapshot(_capsules[capsuleId].slotId, _capsules[capsuleId].name);
+    if (ret < 0) {
+        cerr << LOG_PREFIX "Pause failed: no snapshot taken of capsule " << capsuleId << endl;
+
+        return -1;
+    }
+
+    ret = this->shutdown(_capsules[capsuleId].slotId);
+    if (ret < 0)
+        return ret;
 
     _capsules[capsuleId].state = "paused";
 
-    return ret;
+    return 0;
 }
 
 
@@ -474,12 +550,21 @@ int Capsule::pause(unsigned capsuleId)
  */
 int Capsule::unpause(unsigned capsuleId)
 {
-    int ret;
+    int slotId;
 
-    ret = this->restoreSnapshot(_capsules[capsuleId].name);
+    slotId = this->restoreSnapshot(_capsules[capsuleId].name);
+    if (slotId < 0) {
+        cerr << LOG_PREFIX "Unpause failed for capsule " << capsuleId << endl;
+
+        return -1;
+    }
+
+    /* The snapshot is re-implanted wherever a slot was free. */
+
+    _capsules[capsuleId].slotId = slotId;
     _capsules[capsuleId].state  = "running";
 
-    return ret;
+    return 0;
 }
 
 /**

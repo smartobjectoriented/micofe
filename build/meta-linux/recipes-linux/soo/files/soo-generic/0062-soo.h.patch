@@ -1,6 +1,6 @@
 --- /home/rossierd/soo/git/micofe/build/tmp/work/linux-6.12-r0/linux-6.12/soo/include/soo/uapi/soo.h	1970-01-01 01:00:00.000000000 +0100
 +++ ./soo/include/soo/uapi/soo.h	2025-08-29 08:46:41.395924678 +0200
-@@ -0,0 +1,510 @@
+@@ -0,0 +1,538 @@
 +/*
 + * Copyright (C) 2014-2025 Daniel Rossier <daniel.rossier@heig-vd.ch>
 + *
@@ -174,6 +174,11 @@
 +#define AGENCY_IOCTL_GET_S3C_ID _IOWR('S', 6, agency_ioctl_args_t)
 +#define AGENCY_IOCTL_GET_S3C_ID_ARRAY _IOR('S', 7, agency_ioctl_args_t)
 +
++/* Same as AGENCY_IOCTL_READ_SNAPSHOT, but the capsule is left suspended instead
++ * of being resumed: for a caller which shuts it down right after.
++ */
++#define AGENCY_IOCTL_READ_SNAPSHOT_HOLD _IOWR('S', 8, agency_ioctl_args_t)
++
 +#define SOO_NAME_SIZE 16
 +
 +/*
@@ -330,6 +335,22 @@
 +#define AVZ_STAGE_CHUNK 1
 +#define AVZ_STAGE_FINALIZE 2
 +
++/* Snapshot only: complete without resuming the capsule, which is left
++ * suspended. Taking a snapshot normally leaves the capsule living -- that is
++ * the point of snapshotting a running capsule -- but a caller which is about to
++ * shut it down would otherwise let it run, and diverge from the snapshot it has
++ * just taken, for nothing.
++ */
++#define AVZ_STAGE_FINALIZE_HOLD 3
++
++/* Maximum amount of capsule memory moved in a single AVZ_STAGE_CHUNK call.
++ *
++ * A snapshot is streamed through a bounce buffer of that size instead of being
++ * mapped as a whole: the agency has no reason to find several hundreds of
++ * contiguous MB in its CMA zone just to save or restore a capsule.
++ */
++#define AVZ_STAGE_CHUNK_SIZE (4 * 1024 * 1024)
++
 +/* AVZ_INJECT_CAPSULE */
 +typedef struct {
 +	void *itb_paddr;
@@ -377,10 +398,17 @@
 +
 +/* AVZ_READ_SNAPSHOT */
 +/* AVZ_WRITE_SNAPSHOT */
++/*
++ * `snapshot_paddr` points to the agency bounce buffer and is read again at each
++ * stage. At the INIT and FINALIZE stages the buffer holds the snapshot header
++ * (payload size + domain context), which AVZ reads to restore the capsule; at
++ * the CHUNK stage it holds one chunk of capsule memory, at its very beginning,
++ * and `size` tells AVZ how much of it may be used.
++ */
 +typedef struct {
 +	void *snapshot_paddr;
 +	int32_t slotID;
-+	int size;
++	int size; /* INIT: IN/OUT snapshot size / CHUNK: IN bounce buffer size */
 +	uint32_t stage; /* IN: AVZ_STAGE_* */
 +	uint32_t offset; /* CHUNK: IN/OUT byte cursor / INIT: OUT bytes to copy */
 +} avz_snapshot_t;
