@@ -36,17 +36,25 @@ USR_OPTION=$1
 # QEMU_BIN is selected per IB_PLATFORM below (qemu-system-aarch64 for
 # virt64, qemu-system-arm for virt32).
 
-N_QEMU_INSTANCES=`ps -A | grep qemu-system | wc -l`
+# One guest at a time. Every instance attaches the same
+# filesystem/sdcard.img.<platform> with file.locking=off, so a second one
+# writes into the ext4 the first is already writing to -- silently, and the
+# snapshots a capsule saves live on that very partition. Refuse to start
+# rather than let two guests corrupt the image.
+
+RUNNING_QEMU=$(pgrep -f 'qemu-system-[a-z0-9]+ ' | tr '\n' ' ')
+if [ -n "${RUNNING_QEMU}" ]; then
+    printf "Error: a QEMU guest is already running (pid %s).\n" "${RUNNING_QEMU% }" >&2
+    printf "       Quit it first: Ctrl-A x in its console, or kill %s\n" "${RUNNING_QEMU% }" >&2
+    exit 1
+fi
 
 launch_qemu() {
-    QEMU_MAC_ADDR="$(printf 'DE:AD:BE:EF:%02X:%02X\n' $((N_QEMU_INSTANCES)) $((N_QEMU_INSTANCES)))"
+    QEMU_MAC_ADDR="DE:AD:BE:EF:00:00"
 
-    GDB_PORT=$((${GDB_PORT_BASE} + ${N_QEMU_INSTANCES}))
+    GDB_PORT=${GDB_PORT_BASE}
 
-    # Slirp host->guest port forwards. Host-side ports are offset by the
-    # instance index, exactly like GDB_PORT, so a second QEMU starts instead of
-    # dying on "Could not set up host forwarding rule"; the first instance keeps
-    # the canonical numbers.
+    # Slirp host->guest port forwards.
     #   :22   -> guest SSH. No sshd in the current buildroot agency rootfs
     #            (BR2_PACKAGE_DROPBEAR unset), kept for rootfs variants that
     #            ship one.
@@ -59,8 +67,8 @@ launch_qemu() {
     # added without editing this file:
     #   IB_QEMU_HOSTFWD="tcp::9000-:9000,tcp::1880-:1880" st.sh
 
-    SSH_PORT=$((${SSH_PORT_BASE} + ${N_QEMU_INSTANCES}))
-    EMISO_PORT=$((${EMISO_PORT_BASE} + ${N_QEMU_INSTANCES}))
+    SSH_PORT=${SSH_PORT_BASE}
+    EMISO_PORT=${EMISO_PORT_BASE}
     HOSTFWD_OPT="hostfwd=tcp::${SSH_PORT}-:22,hostfwd=tcp::${EMISO_PORT}-:2375"
     if [ -n "${IB_QEMU_HOSTFWD}" ]; then
         HOSTFWD_OPT="${HOSTFWD_OPT},hostfwd=${IB_QEMU_HOSTFWD//,/,hostfwd=}"
