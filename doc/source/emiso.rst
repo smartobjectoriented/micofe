@@ -52,9 +52,18 @@ systemd-based root file systems.
 .. note::
 
 	The current MICOFE agency boots with **SysVinit** (busybox), so the
-	systemd unit is inert there — start the engine from the agency shell
-	(``/root/emiso_engine &``, log on its stdout) or wire an
-	``/etc/init.d`` script.
+	systemd unit is inert there. The engine is started instead by
+	``/etc/init.d/S60emiso`` (rootfs overlay, ``board/common``), after
+	``S30soo`` (which creates ``/dev/soo/core``) and ``S40network``:
+
+	.. code-block:: shell
+
+		/etc/init.d/S60emiso {start|stop|restart}
+
+	Its output goes to ``/var/log/emiso.log`` rather than to the
+	multiplexed serial console. Options are taken from
+	``/etc/default/emiso_engine`` (``EMISO_ARGS``). A rootfs built without
+	the agency user space simply skips the step.
 
 Usage on a systemd rootfs:
 
@@ -126,18 +135,23 @@ the ``/mnt/capsules/image/`` folder of the agency (populated by
 SO3 Capsule - Creation
 ========================
 
-The creation of an SO3 Capsule consists in:
+Creating an SO3 Capsule only registers it: the image is checked for existence
+and the capsule is recorded in the ``created`` state. Nothing is injected, and
+no memory slot is held until the capsule is started.
 
-* A SO3 injection.
-* Creation of a snapshot of the injected capsule
-* A shutdown of the capsule
+A capsule is deliberately *not* created by injecting it and taking a snapshot.
+AVZ fills the vcpu of a domain -- ``VBAR_EL1``, ``SCTLR_EL1`` and the
+translation table registers -- when it schedules that domain out, so a capsule
+which has never run carries zeros there. Restoring such a snapshot yields a
+domain with neither vector table nor MMU setup, which faults on its first
+exception and gets killed.
 
 SO3 Capsule - Start
 =====================
 
-Starting a SO3 container consists in:
-
-* Read / injection of a *snapshoted* capsule
+Starting a SO3 container injects its image and starts the capsule, whether it
+comes from the ``created`` or the ``exited`` state. Only a *paused* capsule is
+resumed from a snapshot, through unpause.
 
 SO3 Capsule - Stop
 ====================
@@ -191,20 +205,23 @@ in the logs files.
 Quick validation
 ****************
 
-The engine listens on port **2375** (the standard Docker daemon port). The
-whole container lifecycle can be exercised from the agency shell with the
-busybox ``wget``:
+The engine listens on port **2375** (the standard Docker daemon port), on all
+interfaces. Under QEMU it is reached from the host PC through the port forward
+set up by ``st.sh`` — see :ref:`portainer-qemu`.
+
+The whole container lifecycle can be exercised from the agency shell with the
+busybox ``wget`` (the engine is already running, started by ``S60emiso``):
 
 .. code-block:: shell
 
-	/root/emiso_engine &
+	cat /var/log/emiso.log                            # -> Server started on port 2375
 
 	# Docker-compatible discovery (what Portainer probes)
 	wget -q -O - http://127.0.0.1:2375/_ping          # -> OK
 	wget -q -O - http://127.0.0.1:2375/version        # -> ApiVersion 1.43, engine 1.0
 	wget -q -O - http://127.0.0.1:2375/images/json    # -> lists virt64_capsule.itb
 
-	# Container lifecycle (create = inject + snapshot + shutdown)
+	# Container lifecycle (create = register, start = inject)
 	wget -q -O - --post-data='{"Image":"virt64_capsule"}' \
 	    "http://127.0.0.1:2375/containers/create?name=demo1"   # -> {"Id": "0"}
 	wget -q -O - --post-data= http://127.0.0.1:2375/containers/0/start
@@ -216,12 +233,12 @@ shows up on the multiplexed agency serial console.
 .. note::
 
 	Container Ids start at 0, and a *created* (not started) container does
-	not appear in ``/containers/json`` — by design, creation snapshots the
-	capsule and shuts it down until ``start`` restores it.
+	not appear in ``/containers/json``: it holds no capsule slot yet.
 
 .. note::
 
-	The snapshot path performs a single 128 MB DMA allocation, so the agency
-	guest needs the 160 MB CMA pool (``linux,cma`` in ``virt64_guest.dts``,
-	inherited from the SO3 base since v6.2.1-rc). With a smaller pool the
-	``create`` request freezes on a kernel BUG.
+	A snapshot is streamed to and from AVZ through a 4 MB bounce buffer,
+	reserved once when the soo module initialises. Neither pause nor unpause
+	needs a contiguous allocation the size of a capsule slot any more, so the
+	CMA pool of the agency guest (``linux,cma`` in ``virt64_guest.dts``) is no
+	longer a constraint on the snapshot path.

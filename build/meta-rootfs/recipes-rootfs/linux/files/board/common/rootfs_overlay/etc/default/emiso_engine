@@ -1,0 +1,6 @@
+# Options passed to the EMISO engine by /etc/init.d/S60emiso.
+#
+# -s   serve the API over HTTPS/TLS. Portainer Server cannot consume it
+#      (portainer/portainer#8011), so leave it off for a Portainer setup.
+
+EMISO_ARGS=""

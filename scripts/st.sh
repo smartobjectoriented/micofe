@@ -13,6 +13,8 @@
 
 QEMU_AUDIO_DRV="none"
 GDB_PORT_BASE=1234
+SSH_PORT_BASE=2222
+EMISO_PORT_BASE=2375
 
 # Parse our own options (currently just -d) out of the argument list before
 # what's left is forwarded to QEMU as USR_OPTION.
@@ -41,8 +43,34 @@ launch_qemu() {
 
     GDB_PORT=$((${GDB_PORT_BASE} + ${N_QEMU_INSTANCES}))
 
+    # Slirp host->guest port forwards. Host-side ports are offset by the
+    # instance index, exactly like GDB_PORT, so a second QEMU starts instead of
+    # dying on "Could not set up host forwarding rule"; the first instance keeps
+    # the canonical numbers.
+    #   :22   -> guest SSH. No sshd in the current buildroot agency rootfs
+    #            (BR2_PACKAGE_DROPBEAR unset), kept for rootfs variants that
+    #            ship one.
+    #   :2375 -> EMISO engine, the Docker-subset REST API served by
+    #            /root/emiso_engine. This is what a Portainer Server running on
+    #            the host PC talks to when the agency is registered as a
+    #            "Docker Standalone / API" environment — doc/source/portainer.rst.
+    # Both bind 0.0.0.0 on the host, so they are reachable from the LAN and from
+    # a containerised Portainer (via the docker0 gateway). Extra forwards can be
+    # added without editing this file:
+    #   IB_QEMU_HOSTFWD="tcp::9000-:9000,tcp::1880-:1880" st.sh
+
+    SSH_PORT=$((${SSH_PORT_BASE} + ${N_QEMU_INSTANCES}))
+    EMISO_PORT=$((${EMISO_PORT_BASE} + ${N_QEMU_INSTANCES}))
+    HOSTFWD_OPT="hostfwd=tcp::${SSH_PORT}-:22,hostfwd=tcp::${EMISO_PORT}-:2375"
+    if [ -n "${IB_QEMU_HOSTFWD}" ]; then
+        HOSTFWD_OPT="${HOSTFWD_OPT},hostfwd=${IB_QEMU_HOSTFWD//,/,hostfwd=}"
+    fi
+    NETDEV_OPT="user,id=n1,${HOSTFWD_OPT}"
+
     echo -e "\033[01;36mMAC addr: " ${QEMU_MAC_ADDR} "\033[0;37m"
     echo -e "\033[01;36mGDB port: " ${GDB_PORT} "\033[0;37m"
+    echo -e "\033[01;36mSSH port: " ${SSH_PORT} "-> guest :22\033[0;37m"
+    echo -e "\033[01;36mEMISO port: " ${EMISO_PORT} "-> guest :2375 (Portainer endpoint)\033[0;37m"
 
     while IFS= read -r line; do
       # Check if the line starts with "IB_PLATFORM"
@@ -89,7 +117,9 @@ launch_qemu() {
     # the guest gets 10.0.2.15 immediately and NetworkManager-wait-online
     # succeeds in <1 s instead of timing out at 60 s as it did with tap+host
     # bridge that had no DHCP server. hostfwd exposes guest SSH on host
-    # port 2222 for convenience. Trade-off: guest is NAT'd, no LAN visibility.
+    # port 2222 and the EMISO engine on host port 2375 (see HOSTFWD_OPT).
+    # Trade-off: the guest is NAT'd, it has no LAN address of its own — anything
+    # to be reached from outside must be forwarded explicitly.
     # Bonus: no sudo needed (no tap device creation), so QEMU artefacts stay
     # owned by the regular user across runs.
     #
@@ -134,7 +164,7 @@ launch_qemu() {
 		-drive if=none,file=filesystem/sdcard.img.virt64,id=hd0,format=raw,file.locking=off \
 		-m 1024 \
 		${DISPLAY_OPT} \
-		-netdev user,id=n1,hostfwd=tcp::2222-:22 \
+		-netdev ${NETDEV_OPT} \
 		-device virtio-net-device,netdev=n1,mac=${QEMU_MAC_ADDR} \
         	-gdb tcp::${GDB_PORT}
 	fi
@@ -157,7 +187,7 @@ launch_qemu() {
 		-drive if=none,file=filesystem/sdcard.img.virt32,id=hd0,format=raw,file.locking=off \
 		-m 1024 \
 		${DISPLAY_OPT} \
-		-netdev user,id=n1,hostfwd=tcp::2222-:22 \
+		-netdev ${NETDEV_OPT} \
 		-device virtio-net-device,netdev=n1,mac=${QEMU_MAC_ADDR} \
         	-gdb tcp::${GDB_PORT}
 	fi

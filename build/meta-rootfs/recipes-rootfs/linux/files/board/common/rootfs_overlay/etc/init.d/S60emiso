@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# Start the EMISO engine, the Docker-subset REST API through which a
+# Portainer Server manages the SO3 capsules. The rootfs ships an
+# emiso.service unit, but this agency boots with busybox init (no
+# systemd), so the unit is never played and the engine has to be
+# started from here.
+#
+# Ordered after S30soo (which creates /dev/soo/core, the capsule control
+# interface the daemon talks to) and after S40network (the engine binds
+# 0.0.0.0:2375 and is reached from the host / the LAN).
+
+DAEMON="emiso_engine"
+DAEMON_PATH="/root/$DAEMON"
+PIDFILE="/var/run/$DAEMON.pid"
+LOGFILE="/var/log/emiso.log"
+
+EMISO_ARGS=""
+
+# shellcheck source=/dev/null
+[ -r "/etc/default/$DAEMON" ] && . "/etc/default/$DAEMON"
+
+start() {
+	# The engine is part of the agency user space (usr-linux:do_deploy).
+	# A rootfs built without it is a valid configuration, so say so and
+	# leave the boot alone rather than failing.
+
+	if [ ! -x "$DAEMON_PATH" ]; then
+		echo "$DAEMON not installed, skipping"
+		return 0
+	fi
+
+	if [ ! -c /dev/soo/core ]; then
+		echo "Warning: /dev/soo/core missing, $DAEMON will not see any capsule"
+	fi
+
+	printf 'Starting %s: ' "$DAEMON"
+
+	# busybox start-stop-daemon cannot redirect the daemon's output, and
+	# the engine logs on stdout — it would land on the multiplexed serial
+	# console, in the middle of the capsule consoles. Start it through a
+	# shell that redirects and then execs, so the pidfile still holds the
+	# engine's own pid.
+
+	mkdir -p "$(dirname "$LOGFILE")"
+	start-stop-daemon --start --background --make-pidfile \
+		--pidfile "$PIDFILE" --startas /bin/sh \
+		-- -c "exec $DAEMON_PATH $EMISO_ARGS >>$LOGFILE 2>&1"
+	status=$?
+	if [ "$status" -eq 0 ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+	fi
+	return "$status"
+}
+
+stop() {
+	printf 'Stopping %s: ' "$DAEMON"
+
+	# Match on the pidfile only: the pid was created for /bin/sh, which
+	# then exec'd the engine, so an --exec test races with that exec.
+
+	start-stop-daemon --stop --pidfile "$PIDFILE"
+	status=$?
+	if [ "$status" -eq 0 ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+	fi
+	rm -f "$PIDFILE"
+	return "$status"
+}
+
+restart() {
+	stop
+	sleep 1
+	start
+}
+
+case "$1" in
+	start|stop|restart)
+		"$1";;
+	reload)
+		# Restart, since there is no true "reload" feature.
+		restart;;
+	*)
+		echo "Usage: $0 {start|stop|restart|reload}"
+		exit 1
+esac

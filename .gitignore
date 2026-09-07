@@ -54,6 +54,12 @@ filesystem/work
 *.d
 *.back
 
+# '*.d' above targets dependency files, but it also matches the *directory*
+# etc/init.d in the rootfs overlays — git then never descends into it and every
+# boot script there is silently invisible (S30soo only made it in through a
+# 'git add -f'). Un-ignore the directory itself.
+!**/init.d/
+
 # Hidden files
 .*
 
