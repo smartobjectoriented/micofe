@@ -87,6 +87,7 @@ filesystem/work
 
 # do_attach_infrabase manifests (build artifacts)
 *.attach.sha256
+*.attach.pf
 *.back/
 
 # --- Build-generated / attached at build time (materialized from patch sets / fetch) ---
