@@ -49,14 +49,23 @@ python do_handle_fetch_git() {
     result = subprocess.run(cmd, shell=True, check=True, cwd=gitdir)
 }
 
-do_clean:append () {
+# usr.bbclass defines do_clean in Python, and a shell :append is pasted
+# verbatim into that Python function, so `-c clean` died on a SyntaxError.
+# The shell stays shell, in its own function, called from a Python append.
+usr_so3_clean_lvgl () {
 
      if echo ":${OVERRIDES}:" | grep -q ":lvgl"; then
         rm -rf ${IB_TARGET}/lib/lvgl/*
         rm -rf ${IB_TARGET}/src/lib
 
-        rm -rf ${WORKDIR}/*
+        # Everything but temp/: bitbake keeps the running task's log and
+        # output fifo there, and removing it aborts the clean itself.
+        find ${WORKDIR} -mindepth 1 -maxdepth 1 ! -name temp -exec rm -rf {} +
      
         rm -rf ${S}/lib/lvgl/*
     fi
+}
+
+python do_clean:append () {
+    bb.build.exec_func('usr_so3_clean_lvgl', d)
 }
