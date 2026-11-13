@@ -41,27 +41,22 @@ do_configure () {
 
 	cd ${IB_TARGET}
 
-	# Defconfig selection on virt64:
-	#   - IB_BOOT_CHAIN="uboot" (bare bsp-linux, no ATF):
-	#     upstream qemu_arm64_defconfig — CONFIG_POSITION_INDEPENDENT=y
-	#     and CONFIG_ARCH_QEMU=y, both required for QEMU `-kernel` to
-	#     load the U-Boot ELF at any address. Linux runs at EL1 (no
-	#     secure / no virtualization in QEMU machine).
-	#   - IB_BOOT_CHAIN="atf+uboot" and "full" (capsule) both use
-	#     virt64_defconfig — same FIP-aware U-Boot, the boot chain
-	#     difference lives in ATF (no SPD vs SPD=opteed) and the guest
-	#     DT. U-Boot is entered at EL2 by ATF and does NOT switch to EL1
-	#     before booting the kernel — the kernel performs its own
-	#     el2_setup and drops to EL1 itself, as per the arm64 boot
-	#     protocol.
-	#   - verdin platforms: ${IB_PLATFORM}_defconfig (verdin uses
-	#     uboot_2024.07.bb anyway).
+	# Every chain takes ${IB_PLATFORM}_defconfig on virt64. Upstream
+	# qemu_arm64_defconfig cannot boot the SO3 ITB ("Could not find
+	# configuration node") and has no CONFIG_CMD_GUEST_BOOT, and this one
+	# boots Linux as well. ATF enters U-Boot at EL2 and it does NOT switch
+	# to EL1 before booting: the kernel performs its own el2_setup. Verdin
+	# uses uboot_2024.07.bb.
 
-	if [ "${IB_PLATFORM}" = "virt64" ] && [ "${IB_BOOT_CHAIN}" = "uboot" ]; then
-		make qemu_arm64_defconfig
-	else
-		make ${IB_PLATFORM}_defconfig
-	fi
+	# CROSS_COMPILE has to be pinned here too, not only in do_build: the
+	# U-Boot Makefile carries a patched-in default of
+	# aarch64-none-linux-gnu-, and the defconfig step probes the compiler
+	# (scripts/gcc-version.sh, clang-version.sh). On a 32-bit platform, or
+	# in a container that ships no 64-bit toolchain, that default is simply
+	# absent and Kconfig dies with "syntax error". A host that happens to
+	# have the 64-bit toolchain installed hides the bug.
+
+	make CROSS_COMPILE=${IB_TOOLCHAIN}- ${IB_PLATFORM}_defconfig
 
 	# Specific handling for bbb platform
 	if [ "${IB_PLATFORM}" = "bbb" ]; then

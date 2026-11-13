@@ -47,6 +47,16 @@ do_build[depends] += "musl-toolchain:do_build"
 do_build:prepend () {
 	export PATH="${IB_MUSL_TOOLCHAIN_DIR}/${IB_MUSL_TARGET}/bin:$PATH"
 
+	# The binaries are static and the build does not track libc.a, so an
+	# incremental build would keep the libc of the previous toolchain.
+
+	_tc_rev="$(cat ${IB_MUSL_TOOLCHAIN_DIR}/${IB_MUSL_TARGET}/.ib_srcrev 2>/dev/null || true)"
+	_tc_marker="${IB_TARGET}/.ib_last_toolchain"
+	if [ "$(cat $_tc_marker 2>/dev/null || true)" != "$_tc_rev" ]; then
+		echo "SO3 usr toolchain changed; wiping build/"
+		rm -rf ${IB_TARGET}/build
+	fi
+	echo "$_tc_rev" > "$_tc_marker"
 }
 
 # Make sure so3 has been installed correctly to fetch other components if required
@@ -62,10 +72,17 @@ python do_deploy() {
     d.setVar('ROOTFS_FILENAME', '')
 
     if os.path.isdir(d.getVar('IB_ROOTFS_PATH')):
-        __do_rootfs_mount(d)
-        
         src_dir = os.path.join(d.getVar('IB_TARGET'), 'build', 'deploy')
         dst_dir = os.path.join(d.getVar('IB_ROOTFS_PATH'), 'fs')
+
+        # The user space must be built before it can be deployed. Bail out
+        # early — before mounting the rootfs, so a missing build does not
+        # leave a dangling loop mount — with an actionable message.
+        if not os.path.isdir(src_dir):
+            bb.fatal("SO3 user space not built: '%s' is missing. "
+                     "Build it first with 'build.sh -x usr-so3' (or 'build.sh bsp-so3')." % src_dir)
+
+        __do_rootfs_mount(d)
 
         # The SO3 rootfs.fat is loop-mounted at rootfs/fs as root
         # (rootfs/mount.sh), so the copy must be privileged. The split

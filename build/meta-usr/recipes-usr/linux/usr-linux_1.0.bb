@@ -141,6 +141,11 @@ python do_deploy() {
 
 addtask do_deploy
 
+# The kernel top Makefile is patched with ARCH=arm64/aarch64 pinned (0011);
+# right for the 64-bit platforms, wrong for virt32. Command-line assignments
+# beat Makefile ones — same fix as in linux_6.12.bb.
+IB_KMAKE_ARGS = "${@'ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-' if (d.getVar('IB_PLAT_CPU') or '') == 'arm' else ''}"
+
 # Build extra components which is not in src/ directory like modules
 do_build:prepend () {
 
@@ -148,11 +153,11 @@ do_build:prepend () {
 
 	if [ ! -f ${IB_LINUX_PATH}/Module.symvers ]; then
         	echo "Generating Module.symvers..." ;
-        	make -j${CORES} -C ${IB_LINUX_PATH} modules ;
-            make INSTALL_MOD_PATH=${IB_ROOTFS_PATH}/target -C ${IB_LINUX_PATH} modules_install ; \
+        	make ${IB_KMAKE_ARGS} -j${CORES} -C ${IB_LINUX_PATH} modules ;
+            make ${IB_KMAKE_ARGS} INSTALL_MOD_PATH=${IB_ROOTFS_PATH}/target -C ${IB_LINUX_PATH} modules_install ; \
     fi
 
-	make -C ${IB_LINUX_PATH} M=${IB_TARGET}/src/modules modules IB_PLATFORM=${IB_PLATFORM}
+	make ${IB_KMAKE_ARGS} -C ${IB_LINUX_PATH} M=${IB_TARGET}/src/modules modules IB_PLATFORM=${IB_PLATFORM}
 }
 
 # Installing usr apps mean to move the binary and all files which need to
@@ -160,13 +165,13 @@ do_build:prepend () {
 # the rootfs itself; this is achieved with the do_deploy task (by the bsp recipe)
 
 do_install_apps () {
-
+    
     usr_do_install_file_root "${IB_TARGET}/build/src/examples/hello"
     usr_do_install_file_root "${IB_TARGET}/build/bin/capsule-flash-test"
     usr_do_install_file_root "${IB_TARGET}/build/bin/capsule-http-test"
 
     # Installation of modules if any
-
+    
     usr_do_install_file_root "${IB_TARGET}/src/modules/*.ko"
 }
 
@@ -174,13 +179,13 @@ do_install_apps () {
 # verbatim into that Python function, so `-c clean` died on a SyntaxError.
 # The shell stays shell, in its own function, called from a Python append.
 usr_linux_clean () {
-
+    
     # Clean the modules — only when there is a kernel tree to clean them
     # against; before the first linux build there is nothing to clean.
     if [ -d ${IB_TARGET}/src/modules ] && [ -d ${IB_LINUX_PATH} ]; then
-	    make -C ${IB_LINUX_PATH} M=${IB_TARGET}/src/modules clean
+	    make ${IB_KMAKE_ARGS} -C ${IB_LINUX_PATH} M=${IB_TARGET}/src/modules clean
     fi
-
+    
     rm -f ${TMPDIR}/stamps/usr-linux*
 
     # Remove the usr organization in the build directory to avoid
@@ -190,7 +195,7 @@ usr_linux_clean () {
 
    # Remove all patches
    rm -rf ${IB_TARGET}/patches
-
+	
    # Clean the user space apps
    rm -rf ${IB_TARGET}/build
 }

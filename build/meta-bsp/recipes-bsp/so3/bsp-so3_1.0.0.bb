@@ -18,6 +18,11 @@ inherit bsp
 # ITS templates live in the layer (rendered into IB_ITB_PATH by do_itb)
 IB_ITS_SRC = "${THISDIR}/files/its"
 
+# AVZ two-ITB boot: the guest ITB is <plat>_so3_guest.itb. bsp.bbclass
+# defaults to the Linux guest.
+
+IB_GUEST_SUFFIX = "_so3_guest"
+
 # :append (not +=) so no space is inserted before ":so3" — otherwise the
 # preceding CPU token parses as "arm "/"aarch64 " and :<cpu> overrides
 # stop matching. See usr-so3_1.0.bb for the full rationale.

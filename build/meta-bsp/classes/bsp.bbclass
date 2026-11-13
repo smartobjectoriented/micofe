@@ -1,5 +1,3 @@
-
-
 # Copyright (c) 2023-2026 EDGEMTech Ltd
 # Adapted for MICOFE - Copyright (c) 2026 REDS Institute, HEIG-VD
 
@@ -15,12 +13,33 @@ IB_BSP_PATH = "${IB_DIR}/build/meta-bsp/recipes-bsp/bsp"
 IB_ATF_PATH = "${IB_DIR}/atf"
 IB_OPTEE_PATH = "${IB_DIR}/atf/optee"
 
-# ITB build/output directory (gitignored). The ITS *sources* live in each
+# ITB build/output directory (gitignored). The ITS *sources* live in the
 # BSP recipe's files/its/ (IB_ITS_SRC) and reference the component trees via
-# ${IB_*_PATH} variables; do_itb renders them here (bsp_render_its) before
-# mkimage and writes the resulting .itb here too.
-IB_ITB_PATH:so3 = "${IB_DIR}/so3/images"
+# ${IB_*_PATH} variables; do_render_its renders them here before mkimage and
+# writes the resulting .itb here too.
 IB_ITB_PATH:linux = "${IB_DIR}/linux/images"
+IB_ITB_PATH:zephyr = "${IB_DIR}/zephyr/images"
+IB_ITB_PATH:so3 = "${IB_DIR}/so3/images"
+
+# Zephyr environment, laid out like the others: the tree at zephyr/zephyr,
+# the applications at zephyr/usr, the ITB at zephyr/images.
+#
+# IB_ZEPHYR_IMAGE is the payload bsp-zephyr puts in the ITB: the binary
+# usr-zephyr builds, under zephyr/usr/build/<app>/ the way linux/usr builds
+# under linux/usr/build/. IB_ZEPHYR_APP selects the application and is
+# declared by usr-zephyr; repeated here so IB_ZEPHYR_IMAGE resolves for
+# recipes that read it without pulling that recipe in.
+IB_ZEPHYR_PATH ?= "${IB_DIR}/zephyr/zephyr"
+IB_ZEPHYR_USR_PATH ?= "${IB_DIR}/zephyr/usr"
+IB_ZEPHYR_APP ?= "hello-ib"
+IB_ZEPHYR_IMAGE ?= "${IB_ZEPHYR_USR_PATH}/build/${IB_ZEPHYR_APP}/zephyr/zephyr.bin"
+IB_ZEPHYR_FDT ?= "${IB_DIR}/zephyr/images/${IB_PLATFORM}_fdt.dtb"
+
+# The image that boots before the application, when the chain has one
+# (MCUboot). Declared by usr-zephyr, which also builds it; empty means the
+# application boots directly.
+IB_ZEPHYR_BOOT_APP ?= ""
+IB_ZEPHYR_BOOT_IMAGE ?= "${IB_ZEPHYR_USR_PATH}/build/${IB_ZEPHYR_BOOT_APP}/zephyr/zephyr.bin"
 
 # Component tree locations referenced from the ITS templates. Provided here
 # (?=) so every BSP recipe can render any ITS regardless of which classes it
@@ -30,9 +49,10 @@ IB_AVZ_PATH ?= "${IB_DIR}/avz"
 IB_LINUX_PATH ?= "${IB_DIR}/linux/linux"
 
 # AVZ two-ITB boot: the guest ITB basename is <IB_TARGET_ITS without _avz> +
-# this suffix. SO3 guests use _so3_guest (default); the Linux agency overrides
-# it to _linux_guest in bsp-linux.
-IB_GUEST_SUFFIX ?= "_so3_guest"
+# this suffix: _linux_guest by default, _so3_guest in bsp-so3. It stays a
+# variable so a downstream tree can add another guest flavour without touching
+# this class.
+IB_GUEST_SUFFIX ?= "_linux_guest"
 
 # Which cpio feeds the embedded ramfs (the initrd.cpio.gz that the ITS
 # /incbin/'s into the guest ITB). Both modes run-from-RAM; only the source
@@ -55,13 +75,14 @@ bsp_render_its() {
 	    -e "s|[$][{]IB_AVZ_PATH[}]|${IB_AVZ_PATH}|g" \
 	    -e "s|[$][{]IB_LINUX_PATH[}]|${IB_LINUX_PATH}|g" \
 	    -e "s|[$][{]IB_ROOTFS_PATH[}]|${IB_ROOTFS_PATH}|g" \
+	    -e "s|[$][{]IB_ZEPHYR_IMAGE[}]|${IB_ZEPHYR_IMAGE}|g" \
+	    -e "s|[$][{]IB_ZEPHYR_FDT[}]|${IB_ZEPHYR_FDT}|g" \
+	    -e "s|[$][{]IB_ZEPHYR_BOOT_IMAGE[}]|${IB_ZEPHYR_BOOT_IMAGE}|g" \
 	    -e "s|[$][{]IB_PLATFORM[}]|${IB_PLATFORM}|g" \
 	    "${IB_ITS_SRC}/$1.its" > "${IB_ITB_PATH}/$1.its"
 }
 
-# Default ITS source dir for the generic (AVZ / bare linux) templates. The
-# Linux-agency BSP (bsp-linux) renders from here; bsp-so3 / bsp-capsules
-# override IB_ITS_SRC to their own files/its.
+# Default ITS source dir for the generic (bare Linux / AVZ) templates.
 IB_ITS_SRC ?= "${IB_DIR}/build/meta-bsp/recipes-bsp/linux/files/its"
 
 # Python counterpart of bsp_render_its, used by do_render_its below. Renders
@@ -80,6 +101,10 @@ def bsp_render_its_py(d, name):
         '${IB_LINUX_PATH}':  d.getVar('IB_LINUX_PATH') or '',
         '${IB_ROOTFS_PATH}': d.getVar('IB_ROOTFS_PATH') or '',
         '${IB_PLATFORM}':    d.getVar('IB_PLATFORM') or '',
+        '${IB_LINUX_DTB}':   d.getVar('IB_LINUX_DTB') or '',
+        '${IB_ZEPHYR_IMAGE}': d.getVar('IB_ZEPHYR_IMAGE') or '',
+        '${IB_ZEPHYR_FDT}':  d.getVar('IB_ZEPHYR_FDT') or '',
+        '${IB_ZEPHYR_BOOT_IMAGE}': d.getVar('IB_ZEPHYR_BOOT_IMAGE') or '',
     }
     with open(src) as f:
         text = f.read()
@@ -91,19 +116,19 @@ def bsp_render_its_py(d, name):
         f.write(text)
     return True
 
-# Generic ITS render step, shared by EVERY BSP recipe (bsp-so3, bsp-linux,
-# bsp-capsules) and their per-platform do_itb includes. Renders all the
-# generic (placeholder) ITS a do_itb may mkimage — bare (IB_PLATFORM), the
-# AVZ ITB (IB_TARGET_ITS) and, for the two-ITB AVZ case, the guest — from
-# IB_ITS_SRC into IB_ITB_PATH, ONCE, before do_itb. Doing it here (not inline
-# in each do_itb) means adding a platform or variant never needs to re-add
-# render calls; bsp_render_its_py just skips the names that have no template.
+# Generic ITS render step, shared by every BSP recipe and its per-platform
+# do_itb include. Renders all the generic (placeholder) ITS a do_itb may
+# mkimage — bare (IB_PLATFORM), the AVZ ITB (IB_TARGET_ITS) and, for the
+# two-ITB AVZ case, the guest — from IB_ITS_SRC into IB_ITB_PATH, ONCE,
+# before do_itb. Doing it here (not inline in each do_itb) means adding a
+# platform or variant never needs to re-add render calls;
+# bsp_render_its_py just skips the names that have no template.
 # do_itb then only reads + mkimage's.
 
 python do_render_its() {
     plat       = d.getVar('IB_PLATFORM') or ''
     target_its = d.getVar('IB_TARGET_ITS') or ''
-    suffix     = d.getVar('IB_GUEST_SUFFIX') or '_so3_guest'
+    suffix     = d.getVar('IB_GUEST_SUFFIX') or '_linux_guest'
     names = [plat, target_its]
     if target_its.endswith('_avz'):
         names.append(target_its[:-len('_avz')] + suffix)
@@ -122,15 +147,11 @@ IB_UENV = "${FILE_DIRNAME}/files/uEnv_${IB_PLATFORM}.txt"
 inherit filesystem
 
 # Platform boot chain — produces the bootloader-side artefacts (flash0.img
-# + FIP for virt64) AND the AVZ ITB. Lives at the BSP class level so it is
-# shared across every BSP recipe (bsp-linux, bsp-so3) and stays
-# capsule-agnostic. AVZ is part of the boot chain by design — the
-# hypervisor runs underneath every capsule, and its ITB is identical
-# regardless of which capsule sits on top.
+# + FIP for virt64, bl31/armstub for rpi4_64, flash.bin for verdin). Lives
+# at the BSP class level so it is shared across every BSP recipe.
 #
 # Per-platform bootloader assembly lives in bsp_<platform>.inc as
-# __do_platform_boot_chain(d). The AVZ ITB build is generic: mkimage on
-# ${IB_DIR}/linux/images/${IB_PLATFORM}_avz.its.
+# __do_platform_boot_chain(d).
 
 # Build dependencies gate on the STAGES in the chain, one flag per stage,
 # derived by ib_normalize_boot_axes in base.bbclass (so "full" and the empty
@@ -147,7 +168,7 @@ inherit filesystem
 #
 # Deps are wired into BOTH do_build (so `build.sh <bsp>` actually compiles
 # every source artefact) AND do_deploy_boot_chain (so a standalone
-# `deploy.sh -a` without a prior build still pulls them through sstate).
+# `deploy.sh <bsp>` without a prior build still pulls them through sstate).
 
 do_deploy_boot_chain[nostamp] = "1"
 # filesystem:do_fs_check because a chain may write its first stage into the
@@ -187,16 +208,16 @@ python () {
 python do_deploy_boot_chain () {
     plat = d.getVar('IB_PLATFORM') or '?'
     chain = d.getVar('IB_BOOT_CHAIN') or '?'
-    bb.plain(f"Deploy boot chain for platform {plat} (chain={chain})")
+    hyp = d.getVar('IB_HYPERVISOR') or '?'
+    bb.plain(f"Deploy boot chain for platform {plat} (chain={chain}, hypervisor={hyp})")
 
     try:
         __do_platform_boot_chain(d)
     except NameError:
         bb.note(f"No __do_platform_boot_chain defined for {plat} — skipping")
 
-    # The AVZ ITB is produced by per-platform do_itb
-    # (bsp_<platform>.inc) which is wired `before do_build`, so they
-    # exist by the time do_deploy_boot_chain runs.
+    # The AVZ ITB is produced by do_itb (wired `before do_build`), so it
+    # exists by the time do_deploy_boot_chain runs.
 }
 addtask do_deploy_boot_chain before do_deploy
 
@@ -215,8 +236,7 @@ def __do_deploy_boot(d):
     # Unmount even when the platform deploy raises. bitbake does not clean up
     # after a failed task, so a storage left mounted makes the next
     # init_storage or deploy fail for a reason that looks unrelated — the
-    # image is busy, or an old loop device still holds it. Backported from
-    # opencn-ng, which hit exactly that.
+    # image is busy, or an old loop device still holds it.
 
     try:
         __do_platform_deploy(d)

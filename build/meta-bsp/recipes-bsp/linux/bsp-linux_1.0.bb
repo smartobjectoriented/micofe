@@ -20,8 +20,8 @@ inherit atf
 # ITS templates live in the layer (rendered into IB_ITB_PATH by do_itb)
 IB_ITS_SRC = "${THISDIR}/files/its"
 
-# AVZ two-ITB boot: the Linux agency guest ITB is <plat>_linux_guest.itb
-# (the AVZ ITB carries only the hypervisor, like the SO3 case).
+# AVZ two-ITB boot: the Linux guest ITB is <plat>_linux_guest.itb (the AVZ
+# ITB carries only the hypervisor).
 IB_GUEST_SUFFIX = "_linux_guest"
 
 OVERRIDES += ":linux"
@@ -52,11 +52,37 @@ do_itb () {
 
 	# ITS are rendered into IB_ITB_PATH by the shared do_render_its (before
 	# do_itb); this task only mkimage's them. The boot shape is selected by
-	# the ITS name (mirroring bsp-so3 and __deploy_arm_common), NOT by
-	# IB_BOOT_CHAIN — AVZ boots fine on the bare U-Boot chain (EL2 via
-	# QEMU virtualization=on), ATF/OP-TEE is an independent choice.
+	# the ITS name (as in __deploy_arm_common), NOT by IB_BOOT_CHAIN — AVZ
+	# boots fine on the bare U-Boot chain (EL2 via QEMU virtualization=on),
+	# and a secure world is equally useful under a plain Linux. That is the
+	# whole point of keeping IB_HYPERVISOR and IB_BOOT_CHAIN orthogonal.
+	#
+	# Two failures, two messages. "IB_TARGET_ITS is unset" and "its template
+	# is missing" are different problems, and the former is the common one:
+	# every IB_TARGET_ITS:linux:<plat> line in local.conf commented out is
+	# enough, and the message has to name the variable and its values.
+	# Plain $its_avail, no braces: bitbake expands every ${...} at parse
+	# time, so a braced shell variable would go through its expander first.
+	# The <plat>${IB_GUEST_SUFFIX} template is dropped from the list: it is
+	# the guest ITB auto-derived from a *_avz selection, never something to
+	# put in local.conf.
+	its_avail=$(cd "${IB_ITS_SRC}" 2>/dev/null && \
+		ls -1 ${IB_PLATFORM}.its ${IB_PLATFORM}_*.its 2>/dev/null | \
+		sed -e 's/\.its$//' -e '/${IB_GUEST_SUFFIX}$/d' | \
+		tr '\n' ' ' | sed 's/ *$//')
+	[ -n "$its_avail" ] || its_avail="none for this platform"
+
+	if [ -z "${IB_TARGET_ITS}" ]; then
+		bbfatal "No ITS selected for platform '${IB_PLATFORM}': set" \
+			"IB_TARGET_ITS:linux:${IB_PLATFORM} in build/conf/local.conf" \
+			"(available: $its_avail)"
+	fi
+
 	if [ ! -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ]; then
-		bbfatal "No corresponding ITS found (${IB_TARGET_ITS})"
+		bbfatal "ITS '${IB_TARGET_ITS}' selected by" \
+			"IB_TARGET_ITS:linux:${IB_PLATFORM} has no template" \
+			"${IB_ITS_SRC}/${IB_TARGET_ITS}.its" \
+			"(available: $its_avail)"
 	fi
 	mkimage -f ${IB_ITB_PATH}/${IB_TARGET_ITS}.its ${IB_ITB_PATH}/${IB_TARGET_ITS}.itb
 
@@ -87,6 +113,27 @@ do_itb () {
 #   "initrd" - board/<plat>/initrd.cpio, a static git-tracked busybox ramfs.
 # Either way the result is gzipped straight into initrd.cpio.gz; we never
 # overwrite the (now meaningful) static initrd.cpio.
+
+# The dependency is on rootfs-linux:do_build, NOT on any deploy. rootfs.cpio
+# is written by buildroot's post_image.sh at the end of the rootfs build; it
+# is a build output, and nothing has to be installed anywhere first.
+#
+# It used to depend on usr-linux:do_deploy, which made building an image
+# require deploying one: that task mounts the target storage, and on a
+# platform with IB_STORAGE_MODE="hard" (rpi4, rpi4_64) the storage is the
+# physical SD card. `build.sh bsp-linux` then failed on a machine with no
+# card in the reader, at a task that only ever needed a file buildroot had
+# already written. The chain was do_build -> do_itb -> do_prepare_initrd ->
+# usr-linux:do_deploy -> rootfs-linux:do_deploy -> mount /dev/mmcblk0p1.
+#
+# Invisible on virt64, where IB_STORAGE_MODE="soft" makes the same deploy a
+# loopback image.
+#
+# Note this is NOT true of the so3/pos_sol/micofe trees, whose usr-linux
+# bbappend makes do_deploy a BUILD step that bakes the apps into rootfs.cpio
+# and depends on ${IB_ROOTFS_METHOD}:do_build. There the dependency is right
+# and the initrd legitimately carries the apps. Here, as in opencn-ng,
+# usr-linux:do_deploy mounts the media and copies onto the partition.
 
 do_prepare_initrd[nostamp] = "1"
 do_prepare_initrd[depends] = "rootfs-linux:do_build"
@@ -239,6 +286,11 @@ python do_deploy_boot() {
 addtask do_deploy_boot
 
 do_clean[depends] = "usr-linux:do_clean rootfs-linux:do_clean linux:do_clean uboot:do_clean"
+
+# Clean whatever the current axes actually pulled into the build. Gating on
+# the chain/hypervisor rather than on the platform keeps `build.sh -c` from
+# failing on a platform where atf/optee/avz were never built (their do_clean
+# is harmless but the recipes may be skipped by COMPATIBLE_PLATFORM).
 python () {
     hyp = d.getVar('IB_HYPERVISOR') or "none"
     extra = []

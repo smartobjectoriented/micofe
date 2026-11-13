@@ -23,14 +23,24 @@ do_configure[noexec] = "1"
 do_build[depends] = "${IB_ROOTFS_METHOD}:do_build"
 do_build[depends] += "linux:do_build"
 
-# do_deploy is a pure DEPLOY step: it extracts the already-built rootfs.cpio
-# onto p2 (usr apps already inside when IB_RAMFS_SOURCE = "rootfs", copied
-# on top by usr-linux:do_deploy otherwise). It must
-# NOT pull ${IB_ROOTFS_METHOD}:do_build — that would rebuild buildroot on
-# every `deploy.sh`. The workflow is edit -> build.sh (produces rootfs.cpio)
-# -> deploy.sh; a deploy with no prior build fails clearly in
-# __do_rootfs_mount (missing rootfs.cpio) rather than silently rebuilding.
-do_deploy[depends] += "filesystem:do_fs_check"
+# do_deploy extracts rootfs.cpio, copies it onto p2 and repacks it. The usr
+# apps are either already in rootfs.cpio (IB_RAMFS_SOURCE = "rootfs") or
+# copied on top afterwards by usr-linux:do_deploy.
+#
+# It DOES depend on ${IB_ROOTFS_METHOD}:do_build, and that dependency is
+# load-bearing rather than a leftover: nothing else orders this task after
+# the rootfs generator, and usr-linux:do_deploy pulls it into the *build*
+# graph too (usr-linux:do_deploy[depends] = rootfs-linux:do_deploy). Without
+# it, bitbake is free to run this task while buildroot is still writing
+# board/<plat>/rootfs.cpio, and `cpio -id` then reads a truncated archive and
+# aborts with exit status 2 — an intermittent build failure whose message
+# says nothing about a race. It also covers the fresh-checkout case, where
+# there is no cached cpio at all.
+#
+# The cost is one `make` in an already-built buildroot on a standalone
+# deploy (do_build is nostamp), which is a no-op in practice — cheap next to
+# a racy deploy. Do not "simplify" this dependency away.
+do_deploy[depends] += "filesystem:do_fs_check ${IB_ROOTFS_METHOD}:do_build"
 
 do_build[nostamp] = "1"
 do_build () {
@@ -57,12 +67,24 @@ do_attach_infrabase () {
 	# git-tracked SOURCE (the static embedded ramfs for IB_RAMFS_SOURCE =
 	# "initrd"), refreshed from files/board on every attach.
 	#
-	# `cp -r .../board/.` refreshes the source config files on top of the
-	# copy but does NOT remove the dest-only productions, so the
+	# The copy refreshes the source config files on top of the working copy
+	# but does NOT remove the dest-only productions (no --delete), so the
 	# do_prepare_initrd content-hash guard (initrd.cpio.gz.srchash +
 	# initrd.cpio.gz) keeps working across builds.
+	#
+	# Productions left under files/board by an older tree must not be
+	# copied forward: a stale rootfs.cpio would replace the fresh one, and
+	# buildroot's guard, which hashes these files as outputs, would then skip
+	# the make that regenerates it. The exclusions mirror buildroot's hash,
+	# except plain initrd.cpio, a source on the "initrd" ramfs boards.
 	mkdir -p ${WORKDIR}/board
-	cp -r ${FILE_DIRNAME}/files/board/. ${WORKDIR}/board
+	rsync -a \
+		--exclude 'rootfs.cpio' \
+		--exclude '*.cpio.gz' \
+		--exclude '*.srchash' \
+		--exclude '*.backup' \
+		--exclude '*.sha256' \
+		${FILE_DIRNAME}/files/board/ ${WORKDIR}/board/
 
 	# Expose the working copy through the historical board symlink so every
 	# consumer keeps referencing ${IB_ROOTFS_PATH}/board/... unchanged.
@@ -102,10 +124,24 @@ python do_deploy () {
     IB_TARGET = d.getVar('IB_TARGET')
     WORKDIR = d.getVar('WORKDIR')
 
-    # Check if the directory exists
+    # Unwind both mounts taken above before failing, or the next build trips
+    # over the leftover loop device and mounts.
     if not os.path.exists("{}/{}".format(IB_FILESYSTEM_PATH, IB_ROOTFS_PARTITION)):
-        __rootfs_do_umount_rootfs()
+        __do_rootfs_umount(d)
+        __do_fs_umount(d)
         bb.fatal("No {}/{} exists ...".format(IB_FILESYSTEM_PATH, IB_ROOTFS_PARTITION))
+
+    # p2 holds this rootfs and what usr-linux adds on top, both deployed
+    # after it: it is emptied first, or a file the build no longer has would
+    # stay on the card. Only a mounted p2 is emptied, never the directory
+    # under it; lost+found belongs to ext4.
+    p2 = os.path.realpath("{}/{}".format(IB_FILESYSTEM_PATH, IB_ROOTFS_PARTITION))
+    if not os.path.ismount(p2):
+        __do_rootfs_umount(d)
+        __do_fs_umount(d)
+        bb.fatal("{} is not mounted: refusing to deploy the rootfs".format(p2))
+    subprocess.run(["sudo", "find", p2, "-mindepth", "1", "-maxdepth", "1", "!", "-name", "lost+found",
+                    "-exec", "rm", "-rf", "{}", "+"], check=True)
 
     # Read and preserve the current working directory 
     original_cwd = os.getcwd()
