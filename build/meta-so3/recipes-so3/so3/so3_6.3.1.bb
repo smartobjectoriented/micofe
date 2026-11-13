@@ -19,6 +19,11 @@ OVERRIDES:append = ":so3"
 # Where the working directory will be placed in infrabase root dir
 IB_TARGET = "${IB_SO3_PATH}"
 
+# The build leaves its arch marker, the usr-so3 CMake directory and the rendered
+# ITS/ITB in this tree. Upstream SO3 has no directory of either name.
+
+IB_UPDIFF_EXCLUDE = ".ib_last_arch build images"
+
 # MICOFE is a separate repository and does not embed the SO3 sources, so the
 # kernel is FETCHED from the SO3 repo (unlike the SO3 tree itself, which builds
 # in place). Pinned to the SO3 release tag IB_SO3_TAG (see below;
@@ -35,6 +40,17 @@ SRCREV = "f68637b89361058c11a8cfa8fb6046e8605d0e5a"
 FILESPATH:prepend = "${THISDIR}/files/0001-${PF}:"
 
 require files/0001-${PF}-patches.inc
+
+# Stamps carry no signature hash: key them on SRCREV and the patch set so a
+# change of either refreshes the so3/ tree.
+
+do_fetch[stamp-extra-info] = "${SRCREV}"
+do_fetch[prefuncs] += "ib_drop_stale_stamps"
+do_patch[prefuncs] += "ib_drop_stale_stamps"
+
+python () {
+    d.setVarFlag('do_patch', 'stamp-extra-info', ib_patchset_digest(d))
+}
 
 python do_handle_fetch_git() {
 
@@ -73,8 +89,15 @@ do_configure () {
 	echo "${IB_PLAT_CPU}" > "$_arch_marker"
 }
 
+do_build[nostamp] = "1"
 do_build () {
 	echo "Building SO3..."
+
+	# The tree sits inside this repository: without a ceiling, the banner
+	# version would come from a git tag of this tree rather than from the
+	# fallback version.h carries for a tree with no git metadata.
+
+	export GIT_CEILING_DIRECTORIES="${IB_DIR}"
 
 	cd ${IB_SO3_PATH}/so3
 	make

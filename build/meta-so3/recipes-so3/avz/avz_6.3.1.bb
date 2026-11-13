@@ -34,6 +34,20 @@ FILESPATH:prepend = "${THISDIR}/files/0001-${PF}:"
 
 require files/0001-${PF}-patches.inc
 
+# The stamps of this build system carry no signature hash, so a SRCREV or
+# patch-set change alone does not re-trigger the chain. Key the stamps on them
+# (stamp-extra-info is appended to the stamp file name): when either changes,
+# fetch/patch and every later task re-run and the avz/ tree is refreshed;
+# otherwise everything stays incremental.
+
+do_fetch[stamp-extra-info] = "${SRCREV}"
+do_fetch[prefuncs] += "ib_drop_stale_stamps"
+do_patch[prefuncs] += "ib_drop_stale_stamps"
+
+python () {
+    d.setVarFlag('do_patch', 'stamp-extra-info', ib_patchset_digest(d))
+}
+
 python do_handle_fetch_git() {
 
     import os
@@ -58,7 +72,13 @@ do_configure () {
 
 do_build[nostamp] = "1"
 do_build () {
-	echo "Building AVZ..."
+	bbplain "Building AVZ (${IB_CONFIG})..."
+
+	# The tree sits inside this repository: without a ceiling, the banner
+	# version would come from a git tag of this tree rather than from the
+	# fallback version.h carries for a tree with no git metadata.
+
+	export GIT_CEILING_DIRECTORIES="${IB_DIR}"
 
 	cd ${IB_TARGET}
 	make
