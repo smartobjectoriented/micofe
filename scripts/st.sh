@@ -6,6 +6,18 @@
 # Release banner, once per invocation (see scripts/common/banner.sh).
 . "$(cd "$(dirname "$(command -v -- "$0")")" && pwd)/common/banner.sh"
 
+# Handled before setup_env.sh: printing the help should not trigger the
+# tree-switch prompt that sourcing the environment can raise.
+
+case "$1" in
+    -h|--help)
+        echo "Usage: $(basename "$0") [-d] [qemu-option]"
+        echo "  -d   graphical: open the QEMU GTK window showing the guest PL111/LVGL screen"
+        echo "       (default: headless, serial console only)"
+        exit 0
+        ;;
+esac
+
 # Resolve project root from this script's own location, cd there, and
 # source env.sh — prompting the user first if the parent shell points
 # at a different tree. Every relative path below (filesystem/...,
@@ -19,18 +31,14 @@ GDB_PORT_BASE=1234
 SSH_PORT_BASE=2222
 EMISO_PORT_BASE=2375
 
-# Parse our own options (currently just -d) out of the argument list before
-# what's left is forwarded to QEMU as USR_OPTION.
+# Parse our own options out of the argument list before what is left is
+# forwarded to QEMU as USR_OPTION.
+
 WITH_DISPLAY=0
 POSARGS=()
 for _a in "$@"; do
     case "$_a" in
         -d) WITH_DISPLAY=1 ;;
-        -h|--help)
-            echo "Usage: $(basename "$0") [-d] [qemu-option]"
-            echo "  -d   graphical: open the QEMU GTK window showing the guest PL111/LVGL screen"
-            echo "       (default: headless, serial console only)"
-            exit 0 ;;
         *)  POSARGS+=("$_a") ;;
     esac
 done
@@ -39,23 +47,17 @@ USR_OPTION=$1
 # QEMU_BIN is selected per IB_PLATFORM below (qemu-system-aarch64 for
 # virt64, qemu-system-arm for virt32).
 
-# One guest at a time. Every instance attaches the same
-# filesystem/sdcard.img.<platform> with file.locking=off, so a second one
-# writes into the ext4 the first is already writing to -- silently, and the
-# snapshots a capsule saves live on that very partition. Refuse to start
-# rather than let two guests corrupt the image.
+# Count every emulator, whatever the architecture: "qemu-system-arm" does
+# not match "qemu-system-aarch64", so a 64-bit instance used to go
+# uncounted and a second run reused its MAC address and GDB port.
 
-RUNNING_QEMU=$(pgrep -f 'qemu-system-[a-z0-9]+ ' | tr '\n' ' ')
-if [ -n "${RUNNING_QEMU}" ]; then
-    printf "Error: a QEMU guest is already running (pid %s).\n" "${RUNNING_QEMU% }" >&2
-    printf "       Quit it first: Ctrl-A x in its console, or kill %s\n" "${RUNNING_QEMU% }" >&2
-    exit 1
-fi
+N_QEMU_INSTANCES=`ps -A | grep qemu-system | wc -l`
 
 launch_qemu() {
-    QEMU_MAC_ADDR="DE:AD:BE:EF:00:00"
+    QEMU_MAC_ADDR="$(printf 'DE:AD:BE:EF:%02X:%02X\n' $((N_QEMU_INSTANCES)) $((N_QEMU_INSTANCES)))"
+    QEMU_ETH_MAC_ADDR="$(printf 'DE:AD:BE:EF:1%X:%02X\n' $((N_QEMU_INSTANCES)) $((N_QEMU_INSTANCES)))"
 
-    GDB_PORT=${GDB_PORT_BASE}
+    GDB_PORT=$((${GDB_PORT_BASE} + ${N_QEMU_INSTANCES}))
 
     # Slirp host->guest port forwards.
     #   :22   -> guest SSH. No sshd in the current buildroot agency rootfs
@@ -69,9 +71,12 @@ launch_qemu() {
     # a containerised Portainer (via the docker0 gateway). Extra forwards can be
     # added without editing this file:
     #   IB_QEMU_HOSTFWD="tcp::9000-:9000,tcp::1880-:1880" st.sh
+    #
+    # Offset by the instance count like the GDB port, so that a guest of
+    # another tree running alongside does not hold the same host ports.
 
-    SSH_PORT=${SSH_PORT_BASE}
-    EMISO_PORT=${EMISO_PORT_BASE}
+    SSH_PORT=$((${SSH_PORT_BASE} + ${N_QEMU_INSTANCES}))
+    EMISO_PORT=$((${EMISO_PORT_BASE} + ${N_QEMU_INSTANCES}))
     HOSTFWD_OPT="hostfwd=tcp::${SSH_PORT}-:22,hostfwd=tcp::${EMISO_PORT}-:2375"
     if [ -n "${IB_QEMU_HOSTFWD}" ]; then
         HOSTFWD_OPT="${HOSTFWD_OPT},hostfwd=${IB_QEMU_HOSTFWD//,/,hostfwd=}"
@@ -83,17 +88,20 @@ launch_qemu() {
     echo -e "\033[01;36mSSH port: " ${SSH_PORT} "-> guest :22\033[0;37m"
     echo -e "\033[01;36mEMISO port: " ${EMISO_PORT} "-> guest :2375 (Portainer endpoint)\033[0;37m"
 
-    while IFS= read -r line; do
-      # Check if the line starts with "IB_PLATFORM"
-      if [[ $line == IB_PLATFORM* ]]; then
-    	  # Extract the value between the quotes
-    	  value=$(echo "$line" | awk -F'"' '{print $2}')
-    
-    	  # Set the IB_PLATFORM variable to the extracted value
-    	  IB_PLATFORM="$value"
-    	  break
-      fi
-    done < build/conf/local.conf
+    # Read a plain (non-override) assignment out of the configuration.
+    # Reads local.conf THEN site.conf, in the order bitbake.conf includes
+    # them, and takes the LAST match: bitbake is last-assignment-wins, so a
+    # site.conf override has to win here too — otherwise the launcher would
+    # boot a machine differently from how it was built. (An image build may
+    # likewise append its own value after the "?=" default.)
+    conf_value() {
+        cat build/conf/local.conf build/conf/site.conf 2>/dev/null \
+            | grep -E "^$1[[:space:]]*[?:]?=" \
+            | grep -v "^$1:" \
+            | tail -1 | sed -n 's/.*"\([^"]*\)".*/\1/p'
+    }
+
+    IB_PLATFORM="$(conf_value IB_PLATFORM)"
 
     # (An AVZ boot used to be detected here by grepping this file for the
     # selected ITS, so that QEMU could be given EL2. That is now stated by
@@ -149,6 +157,11 @@ launch_qemu() {
     else
         DISPLAY_OPT="-display none"
     fi
+
+    # SO3's only Ethernet driver is the LAN9118 (smc911x), which the QEMU patch
+    # creates when the on-board NIC slot is filled. A Linux guest ignores it.
+
+    ETH_OPT="-nic user,model=lan9118,mac=${QEMU_ETH_MAC_ADDR}"
 
     if [ "$IB_PLATFORM" == "virt64" ]; then
     QEMU_BIN="$IB_ROOT_DIR/qemu/build/qemu-system-aarch64"
@@ -212,6 +225,7 @@ launch_qemu() {
 		${DISPLAY_OPT} \
 		-netdev ${NETDEV_OPT} \
 		-device virtio-net-device,netdev=n1,mac=${QEMU_MAC_ADDR} \
+		${ETH_OPT} \
         	-gdb tcp::${GDB_PORT}
 	fi
 
@@ -235,6 +249,7 @@ launch_qemu() {
 		${DISPLAY_OPT} \
 		-netdev ${NETDEV_OPT} \
 		-device virtio-net-device,netdev=n1,mac=${QEMU_MAC_ADDR} \
+		${ETH_OPT} \
         	-gdb tcp::${GDB_PORT}
 	fi
 
