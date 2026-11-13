@@ -56,6 +56,8 @@ filesystem/p1
 filesystem/p2
 filesystem/sdcard.img.*
 filesystem/work
+filesystem/*.bin
+filesystem/flash0.img
 
 
 # Backup files
